@@ -50,7 +50,9 @@ class Token:
     def __init__(self, token_type, literal):
         self.type = token_type
         self.literal = literal
-        print("Token: %s" % literal)
+
+    def get_type(self):
+        return self.type
 
 class Scanner:
     scanner = None
@@ -61,12 +63,12 @@ class Scanner:
         current = 0
 
         simple_token_lookup = {'(': OPEN_PAREN, ')': CLOSE_PAREN, '{': OPEN_BRACE, '}': CLOSE_BRACE,
-                               '+': [ADD], '-': MINUS, '*': STAR, ';': SEMI_COLON, ',': COMMA, '/': DIV,
+                               '+': ADD, '-': MINUS, '*': STAR, ';': SEMI_COLON, ',': COMMA, '/': DIV,
                                '"': STRING, "!": BANG, ">": GREATER_THAN, "<": LESS_THAN, "=": ASSIGN}
-        keyword_lookup = {'or' : [KEYWORD_OR], 'and': [KEYWORD_AND], 'class': [KEYWORD_CLASS], 'if': [KEYWORD_IF],
-                          'else' : [KEYWORD_ELSE], 'true': [KEYWORD_TRUE], 'false': [KEYWORD_FALSE],
-                          'while' : [KEYWORD_WHILE], 'for': [KEYWORD_FOR], 'return': [KEYWORD_RETURN],
-                          'var' : [KEYWORD_VAR], 'fun' : [KEYWORD_FUN], 'print': [KEYWORD_PRINT]}
+        keyword_lookup = {'or': KEYWORD_OR, 'and': KEYWORD_AND, 'class': KEYWORD_CLASS, 'if': KEYWORD_IF,
+                          'else': KEYWORD_ELSE, 'true': KEYWORD_TRUE, 'false': KEYWORD_FALSE,
+                          'while': KEYWORD_WHILE, 'for': KEYWORD_FOR, 'return': KEYWORD_RETURN,
+                          'var': KEYWORD_VAR, 'fun': KEYWORD_FUN, 'print': KEYWORD_PRINT}
         compound_symbols = {DIV: [COMMENT, '/'], LESS_THAN: [LESS_THAN_EQUALS, '='],
                             GREATER_THAN: [GREATER_THAN_EQUALS, '='], ASSIGN: [EQUALS, '='],
                             BANG: [NOT_EQUALS, '=']}
@@ -89,6 +91,9 @@ class Scanner:
 
         def get_current_line(self):
             return self.line
+
+        def get_tokens(self):
+            return self.tokens
 
         def advance(self):
             if self.end_of_source() is True:
