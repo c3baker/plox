@@ -37,12 +37,20 @@ BANG = 35
 NUMBER = 36
 
 
+class LexicalError(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+    def get_error_message(self):
+        return self.message
+
+
 class Token:
     def __init__(self, token_type, literal):
         self.type = token_type
         self.literal = literal
         print("Token: %s" % literal)
-
 
 class Scanner:
     scanner = None
@@ -74,10 +82,13 @@ class Scanner:
             self.source = source
 
         def raise_lexical_error(self, message):
-            raise Exception(message)
+            raise LexicalError(message)
 
         def set_source(self, source):
             self._init_members(source)
+
+        def get_current_line(self):
+            return self.line
 
         def advance(self):
             if self.end_of_source() is True:
@@ -112,13 +123,16 @@ class Scanner:
             floating_point_count = 0
             c = self.peek_next()
             if c is not None:
-                while c.isnumeric():
+                while c.isnumeric() or c == '.':
                     self.advance()
                     c = self.peek_next()
-                    if c == '.' and floating_point_count == 0:
-                        floating_point_count += 1
-                    elif floating_point_count > 0:
-                        self.raise_lexical_error("Lexical Error: Too many decimal points in numeric.")
+                    if c is None:
+                        break
+                    if c == '.':
+                        if floating_point_count == 0:
+                            floating_point_count += 1
+                        else:
+                            self.raise_lexical_error("Lexical Error: Too many decimal points in numeric.")
 
             self.add_token(NUMBER)
 
@@ -179,7 +193,7 @@ class Scanner:
                 elif c.isnumeric():
                     self.read_numeric_symbol()
                 else:
-                    token_id = self.simple_token_lookup[c]
+                    token_id = None if c not in self.simple_token_lookup.keys() else self.simple_token_lookup[c]
                     if token_id is None:
                         self.raise_lexical_error("Lexical Error: Unrecognized symbol %c." % c)
                     else:
@@ -193,6 +207,9 @@ class Scanner:
             self.scanner = self._Scanner(source)
         else:
             self.scanner.set_source(source)
+
+    def get_scanner(self):
+        return self.scanner
 
 
 

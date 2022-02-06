@@ -17,7 +17,10 @@ def command_line():
     while src_in != "exit":
         src_in = input(">> ")
         scanner = plox_scanner.Scanner(src_in)
-        scanner.scanner.scan()
+        try:
+            scanner.get_scanner().scan()
+        except plox_scanner.LexicalError as le:
+            report_error(scanner.get_scanner().get_current_line(), "", le.get_error_message())
 
 
 def interpret_source(source):
