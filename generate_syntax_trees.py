@@ -22,6 +22,10 @@ def write_ast_class(output_file, ast_type):
         write_line(output_file, 'self.'+member+' = ' + member, 2)
     write_line(output_file, 'self.type = ' + ast_type, 2)
     output_file.write('\n')
+    write_line(output_file, 'def accept(self, visitor): ', 1)
+    write_line(output_file, 'val = visitor.visit_' + str(ast_type) + '()', 2)
+    write_line(output_file, 'return val', 2)
+    output_file.write('\n')
     output_file.write('\n')
 
 
