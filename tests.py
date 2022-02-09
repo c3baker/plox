@@ -1,6 +1,7 @@
 import unittest
 import plox_scanner as lex
 
+
 class ScannerTests(unittest.TestCase):
 
     program_1 = "if(x == true) " \
