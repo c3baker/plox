@@ -1,7 +1,7 @@
-Binary = 0
-Grouping = 1
-Literal = 2
-Unary = 3
+Type_Binary = 0
+Type_Grouping = 1
+Type_Literal = 2
+Type_Unary = 3
 
 
 class Binary:
@@ -9,7 +9,7 @@ class Binary:
         self.left_expr = left_expr
         self.operator = operator
         self.right_expr = right_expr
-        self.type = Binary
+        self.type = Type_Binary
 
     def accept(self, visitor): 
         val = visitor.visit_Binary()
@@ -19,7 +19,7 @@ class Binary:
 class Grouping:
     def __init__(self, expr):
         self.expr = expr
-        self.type = Grouping
+        self.type = Type_Grouping
 
     def accept(self, visitor): 
         val = visitor.visit_Grouping()
@@ -29,7 +29,7 @@ class Grouping:
 class Literal:
     def __init__(self, value):
         self.value = value
-        self.type = Literal
+        self.type = Type_Literal
 
     def accept(self, visitor): 
         val = visitor.visit_Literal()
@@ -40,7 +40,7 @@ class Unary:
     def __init__(self, operator, right_expr):
         self.operator = operator
         self.right_expr = right_expr
-        self.type = Unary
+        self.type = Type_Unary
 
     def accept(self, visitor): 
         val = visitor.visit_Unary()

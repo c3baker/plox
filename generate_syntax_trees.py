@@ -20,7 +20,7 @@ def write_ast_class(output_file, ast_type):
     write_line(output_file, 'def __init__(self, ' + arguments + '):', 1)
     for member in members:
         write_line(output_file, 'self.'+member+' = ' + member, 2)
-    write_line(output_file, 'self.type = ' + ast_type, 2)
+    write_line(output_file, 'self.type = ' + 'Type_' + ast_type, 2)
     output_file.write('\n')
     write_line(output_file, 'def accept(self, visitor): ', 1)
     write_line(output_file, 'val = visitor.visit_' + str(ast_type) + '()', 2)
@@ -32,7 +32,7 @@ def write_ast_class(output_file, ast_type):
 def define_ast(output_dir, base_name):
     with open(output_dir + '\\' + base_name + '.py', 'w') as f:
         for ast_type in ast_types:
-            f.write(ast_type + ' = ' + str(ast_type_enum[ast_type]) + '\n')
+            f.write('Type_' + ast_type + ' = ' + str(ast_type_enum[ast_type]) + '\n')
         f.write('\n\n')
         for ast_type in ast_types:
             write_ast_class(f, ast_type)
