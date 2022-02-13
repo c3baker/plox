@@ -29,7 +29,7 @@ class ScannerTests(unittest.TestCase):
                 "{" \
                 "    var xk = 3838;" \
                 "    var r = basic_function(xk / 3);" \
-                "    for(var i = 0, i < 10, "
+                "    for(var i = 0; i < 10;  "
 
     def setUp(self):
         self.scanner = lex.Scanner("")
@@ -45,16 +45,16 @@ class ScannerTests(unittest.TestCase):
     def test_basic_token_counts(self):
         self.scanner = lex.Scanner(self.program_1)
         self.scanner.get_scanner().scan()
-        self.assertEqual(self.count_tokens(self.scanner, lex.OPEN_PAREN), 2)
-        self.assertEqual(self.count_tokens(self.scanner, lex.CLOSE_PAREN), 2)
-        self.assertEqual(self.count_tokens(self.scanner, lex.OPEN_BRACE), 2)
-        self.assertEqual(self.count_tokens(self.scanner, lex.CLOSE_BRACE), 2)
+        self.assertEqual(self.count_tokens(self.scanner, lex.OPEN_PAREN), 7)
+        self.assertEqual(self.count_tokens(self.scanner, lex.CLOSE_PAREN), 6)
+        self.assertEqual(self.count_tokens(self.scanner, lex.OPEN_BRACE), 4)
+        self.assertEqual(self.count_tokens(self.scanner, lex.CLOSE_BRACE), 3)
         self.assertEqual(self.count_tokens(self.scanner, lex.KEYWORD_IF), 1)
         self.assertEqual(self.count_tokens(self.scanner, lex.KEYWORD_ELSE), 1)
-        self.assertEqual(self.count_tokens(self.scanner, lex.NUMBER), 4)
-        self.assertEqual(self.count_tokens(self.scanner, lex.KEYWORD_VAR), 6)
-        self.assertEqual(self.count_tokens(self.scanner, lex.STRING), 1)
-        self.assertEqual(self.count_tokens(self.scanner, lex.SEMI_COLON), 7)
+        self.assertEqual(self.count_tokens(self.scanner, lex.NUMBER), 9)
+        self.assertEqual(self.count_tokens(self.scanner, lex.KEYWORD_VAR), 11)
+        self.assertEqual(self.count_tokens(self.scanner, lex.STRING), 2)
+        self.assertEqual(self.count_tokens(self.scanner, lex.SEMI_COLON), 14)
 
 
 

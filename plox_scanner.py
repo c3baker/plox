@@ -1,3 +1,5 @@
+import plox_utilities as utilities
+
 OPEN_PAREN = 0
 CLOSE_PAREN = 1
 OPEN_BRACE = 2
@@ -35,6 +37,40 @@ IDENTIFIER = 33
 SLASH = 34
 BANG = 35
 NUMBER = 36
+
+
+class SourceIterator(utilities.PloxIterator):
+    def __init__(self, source):
+        super().__init__(source)
+        self._start = 0
+        self._line = 0
+
+    def is_whitespace(self):
+        c = self.peek()
+        return True if c == ' ' or c == '\t' or c == '\n' else False
+
+    def start_next_token(self):
+        self._start = self.get_index() - 1 if self.get_index() > 0 else 0
+
+    def source_current_string(self):
+        end = self.get_index() if not self.list_end() else len(self._list) - 1
+        return self._list[self._start:end]
+
+    def advance(self):
+        while self.is_whitespace():
+            c = utilities.PloxIterator.advance(self)
+            if c == '\n':
+                self._line += 1
+        return utilities.PloxIterator.advance(self)
+
+    def get_current_line(self):
+        return self._line
+
+    def match(self, char):
+        ret = True if self.peek_next() == char else False
+        if ret:
+            self.advance()
+        return ret
 
 
 class LexicalError(Exception):
@@ -81,7 +117,7 @@ class Scanner:
             self.start = 0
             self.current = 0
             self.tokens = []
-            self.source = source
+            self.source = SourceIterator(source)
 
         def raise_lexical_error(self, message):
             raise LexicalError(message)
@@ -89,68 +125,33 @@ class Scanner:
         def set_source(self, source):
             self._init_members(source)
 
-        def get_current_line(self):
-            return self.line
-
         def get_tokens(self):
             return self.tokens
 
-        def advance(self):
-            if self.end_of_source() is True:
-                return None
-            c = self.source[self.current]
-            self.current += 1
-            return c
-
-        def peek_next(self):
-            if self.end_of_source() is True:
-                return None
-            return self.source[self.current]
-
-        def end_of_source(self):
-            return self.current >= len(self.source)
-
         def add_token(self, token_type):
-            self.tokens.append(Token(token_type, self.get_current_source_string()))
+            self.tokens.append(Token(token_type, self.source.source_current_string()))
 
-        def has_matching_symbol(self, match):
-            if self.end_of_source():
-                return False
-            if self.peek_next() == match:
-                self.advance()
-                return True
-            return False
-
-        def get_current_source_string(self):
-            return self.source[self.start:self.current]
+        def is_valid_numeric_symbol(self, symbol):
+            return True if symbol is not None and (symbol.isnumeric() or symbol == '.') else False
 
         def read_numeric_symbol(self):
-            floating_point_count = 0
-            c = self.peek_next()
-            if c is not None:
-                while c.isnumeric() or c == '.':
-                    self.advance()
-                    c = self.peek_next()
-                    if c is None:
-                        break
-                    if c == '.':
-                        if floating_point_count == 0:
-                            floating_point_count += 1
-                        else:
-                            self.raise_lexical_error("Lexical Error: Too many decimal points in numeric.")
-
+            floating_point = False
+            while self.is_valid_numeric_symbol(self.source.peek()):
+                c = self.source.advance()
+                if c == '.' and floating_point:
+                    self.raise_lexical_error("Lexical Error: Too many decimal points in numeric.")
+                elif c == '.':
+                    floating_point = True
             self.add_token(NUMBER)
 
-        def read_alpha_symbol(self):
-            c = self.peek_next()
-            if c is not None:
-                while c.isalnum() or c == '_':
-                    self.advance()
-                    c = self.peek_next()
-                    if c is None:
-                        break
+        def is_valid_name_or_keyword_symbol(self, symbol):
+            return False if symbol is None or (symbol != '_' and not symbol.isalnum()) else True
 
-            symbol = self.get_current_source_string()
+        def read_alpha_symbol(self):
+            while self.is_valid_name_or_keyword_symbol(self.source.peek()):
+                self.source.advance()
+
+            symbol = self.source.source_current_string()
             token_id = IDENTIFIER if symbol not in self.keyword_lookup.keys() else self.keyword_lookup[symbol]
             self.add_token(token_id) # Token is an identifier
 
@@ -158,21 +159,18 @@ class Scanner:
             return True if token_id in self.compound_symbols.keys() else False
 
         def scan_string(self):
-            while self.advance() != '"':
-                if self.end_of_source():
-                    self.raise_lexical_error("Lexical Error: Reached EOF without closing \" ")
+            if self.source.seek('"') is None:
+                self.raise_lexical_error("Lexical Error: Reached EOF without closing \" ")
             self.add_token(STRING)
 
         def scan_comment(self):
-            while self.peek_next() != "\n":
-                if self.end_of_source():
-                    return
-                self.advance()
+            # Comments are just ignored. Scan until the next new line
+            self.source.seek("\n")
 
         def scan_simple_symbol(self, token_id):
             if self.could_be_compound_symbol(token_id):
                 match = self.compound_symbols[token_id]
-                if self.has_matching_symbol(match[1]):
+                if self.source.match(match[1]):
                     self.add_token(match[0])
                 else:
                     self.add_token(token_id)
@@ -184,15 +182,11 @@ class Scanner:
                 self.add_token(token_id)
 
         def scan(self):
-            while not self.end_of_source():
-                self.start = self.current
-                c = self.advance()
-                if c == ' ' or c == "\t":
-                    continue
-                if c == "\n":
-                    self.line += 1
-                    continue
-
+            while not self.source.peek() is None:
+                c = self.source.advance()
+                self.source.start_next_token()
+                if c is None:
+                    return
                 if c.isalpha():
                     self.read_alpha_symbol()
                 elif c.isnumeric():
@@ -203,9 +197,6 @@ class Scanner:
                         self.raise_lexical_error("Lexical Error: Unrecognized symbol %c." % c)
                     else:
                         self.scan_simple_symbol(token_id)
-
-
-
 
     def __init__(self, source):
         if not self.scanner:
