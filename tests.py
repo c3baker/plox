@@ -1,6 +1,6 @@
 import unittest
 import plox_scanner as lex
-
+import plox_parser as par
 
 class ScannerTests(unittest.TestCase):
 
@@ -31,8 +31,11 @@ class ScannerTests(unittest.TestCase):
                 "    var r = basic_function(xk / 3);" \
                 "    for(var i = 0; i < 10;  "
 
+    program_2 = "(3 + 7) * (8 - 2)"
+
     def setUp(self):
         self.scanner = lex.Scanner("")
+        self.parser = par.Parser(None)
 
     def tearDown(self):
         pass
@@ -55,6 +58,16 @@ class ScannerTests(unittest.TestCase):
         self.assertEqual(self.count_tokens(self.scanner, lex.KEYWORD_VAR), 11)
         self.assertEqual(self.count_tokens(self.scanner, lex.STRING), 2)
         self.assertEqual(self.count_tokens(self.scanner, lex.SEMI_COLON), 14)
+
+    def test_parse_expression(self):
+        printer = par.TreePrinter()
+        self.scanner = lex.Scanner(self.program_2)
+        self.scanner.get_scanner().scan()
+        self.parser = par.Parser(self.scanner.get_scanner().get_tokens())
+        parsed_expression = self.parser.parse()
+        print(parsed_expression.accept(printer))
+
+
 
 
 

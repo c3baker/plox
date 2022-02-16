@@ -15,7 +15,7 @@ class PloxIterator:
             return None
         return self._list[self._index]
 
-    def get_previous(self):
+    def previous(self):
         if self._index == 0:
             return None
         return self._list[self._index - 1]

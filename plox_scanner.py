@@ -37,6 +37,7 @@ IDENTIFIER = 33
 SLASH = 34
 BANG = 35
 NUMBER = 36
+KEYWORD_NIL = 37
 
 
 class SourceIterator(utilities.PloxIterator):
@@ -83,9 +84,10 @@ class LexicalError(Exception):
 
 
 class Token:
-    def __init__(self, token_type, literal):
+    def __init__(self, token_type, literal, line):
         self.type = token_type
         self.literal = literal
+        self.line = line
 
     def get_type(self):
         return self.type
@@ -104,7 +106,7 @@ class Scanner:
         keyword_lookup = {'or': KEYWORD_OR, 'and': KEYWORD_AND, 'class': KEYWORD_CLASS, 'if': KEYWORD_IF,
                           'else': KEYWORD_ELSE, 'true': KEYWORD_TRUE, 'false': KEYWORD_FALSE,
                           'while': KEYWORD_WHILE, 'for': KEYWORD_FOR, 'return': KEYWORD_RETURN,
-                          'var': KEYWORD_VAR, 'fun': KEYWORD_FUN, 'print': KEYWORD_PRINT}
+                          'var': KEYWORD_VAR, 'fun': KEYWORD_FUN, 'print': KEYWORD_PRINT, 'nil': KEYWORD_NIL}
         compound_symbols = {DIV: [COMMENT, '/'], LESS_THAN: [LESS_THAN_EQUALS, '='],
                             GREATER_THAN: [GREATER_THAN_EQUALS, '='], ASSIGN: [EQUALS, '='],
                             BANG: [NOT_EQUALS, '=']}
@@ -129,7 +131,9 @@ class Scanner:
             return self.tokens
 
         def add_token(self, token_type):
-            self.tokens.append(Token(token_type, self.source.source_current_string()))
+            current_string = self.source.source_current_string()
+            literal = float(current_string) if token_type == NUMBER else current_string
+            self.tokens.append(Token(token_type, literal, self.source.get_current_line()))
 
         def is_valid_numeric_symbol(self, symbol):
             return True if symbol is not None and (symbol.isnumeric() or symbol == '.') else False

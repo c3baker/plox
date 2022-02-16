@@ -12,7 +12,7 @@ class Binary:
         self.type = Type_Binary
 
     def accept(self, visitor): 
-        val = visitor.visit_Binary()
+        val = visitor.visit_Binary(self)
         return val
 
 
@@ -22,7 +22,7 @@ class Grouping:
         self.type = Type_Grouping
 
     def accept(self, visitor): 
-        val = visitor.visit_Grouping()
+        val = visitor.visit_Grouping(self)
         return val
 
 
@@ -32,7 +32,7 @@ class Literal:
         self.type = Type_Literal
 
     def accept(self, visitor): 
-        val = visitor.visit_Literal()
+        val = visitor.visit_Literal(self)
         return val
 
 
@@ -43,7 +43,7 @@ class Unary:
         self.type = Type_Unary
 
     def accept(self, visitor): 
-        val = visitor.visit_Unary()
+        val = visitor.visit_Unary(self)
         return val
 
 
