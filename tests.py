@@ -32,9 +32,9 @@ class ScannerTests(unittest.TestCase):
                 "    for(var i = 0; i < 10;  "
 
     program_2 = "(3 + 7) * (8 - 2)"
-    printed_syntax_2 = "( * ( Group ( + ( 3.0 ) ( 7.0 ) ) ) ( Group ( - ( 8.0 ) ( 2.0 ) ) )"
+    printed_syntax_2 = "( * ( Group ( + ( 3.0 ) ( 7.0 ) ) ) ( Group ( - ( 8.0 ) ( 2.0 ) ) ) )"
     program_3 = "!(11 >= 17) + (77 / 8) - 144"
-    printed_syntax_3 = "( + ( ! ( Group ( >= ( 11.0 ) ( 17.0 ) ) ) ) ( / ( 77.0 ) ( 8.0 ) ) )  "
+    printed_syntax_3 = "( - ( + ( !( Group ( >= ( 11.0 ) ( 17.0 ) ) ) ) ( Group ( / ( 77.0 ) ( 8.0 ) ) ) ) ( 144.0 ) )  "
 
     def setUp(self):
         self.scanner = lex.Scanner("")
@@ -63,15 +63,17 @@ class ScannerTests(unittest.TestCase):
         self.assertEqual(self.count_tokens(self.scanner, lex.SEMI_COLON), 14)
 
     def test_parse_expressions(self):
-        expressions = [self.program_2, self.program_3, self.program_4, self.program_5]
-        expected_results = [self.printed_syntax_2, self.printed_syntax_3, self.printed_syntax_4, self.printed_syntax_5]
+        expressions = [self.program_2, self.program_3]
+        expected_results = [self.printed_syntax_2, self.printed_syntax_3]
         printer = par.TreePrinter()
-        self.scanner = lex.Scanner(self.program_2)
-        self.scanner.get_scanner().scan()
-        self.parser = par.Parser(self.scanner.get_scanner().get_tokens())
-        parsed_expression = self.parser.parse()
-        printed_syntax = parsed_expression.accept(printer)
-        self.assertEqual(printed_syntax, "( * ( Group ( + ( 3.0 ) ( 7.0 ) ) ) ( Group ( - ( 8.0 ) ( 2.0 ) ) ) ",
+
+        for expression, result in zip(expressions, expected_results):
+            self.scanner = lex.Scanner(expression)
+            self.scanner.get_scanner().scan()
+            self.parser = par.Parser(self.scanner.get_scanner().get_tokens())
+            parsed_expression = self.parser.parse()
+            printed_syntax = parsed_expression.accept(printer)
+            self.assertEqual(printed_syntax, result,
                          "Syntax Tree output does not matched expected result.")
 
 

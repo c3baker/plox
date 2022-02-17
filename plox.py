@@ -1,5 +1,6 @@
 import sys
 import plox_scanner
+import plox_parser
 
 def error(line, message):
     report_error(line, "", message)
@@ -21,6 +22,8 @@ def command_line():
             scanner.get_scanner().scan()
         except plox_scanner.LexicalError as le:
             report_error(scanner.get_scanner().get_current_line(), "", le.get_error_message())
+        except plox_parser.PloxSyntaxError as se:
+            report_error(se.line, se.get_error_message())
 
 
 def interpret_source(source):

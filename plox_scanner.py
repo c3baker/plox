@@ -54,7 +54,7 @@ class SourceIterator(utilities.PloxIterator):
         self._start = self.get_index() - 1 if self.get_index() > 0 else 0
 
     def source_current_string(self):
-        end = self.get_index() if not self.list_end() else len(self._list) - 1
+        end = self.get_index() if not self.list_end() else len(self._list)
         return self._list[self._start:end]
 
     def advance(self):
@@ -68,7 +68,7 @@ class SourceIterator(utilities.PloxIterator):
         return self._line
 
     def match(self, char):
-        ret = True if self.peek_next() == char else False
+        ret = True if self.peek() == char else False
         if ret:
             self.advance()
         return ret
