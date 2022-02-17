@@ -7,24 +7,25 @@ class TreePrinter:
     def visit_Binary(self, binary):
         left_expr = binary.left_expr.accept(self)
         right_expr = binary.right_expr.accept(self)
-        return left_expr + ' ' + binary.operator + ' ' + right_expr
+        return '( ' + binary.operator.literal + ' ' + left_expr + ' ' + right_expr + ' )'
 
     def visit_Grouping(self, grouping):
         grouping_expr = grouping.expr.accept(self)
-        return "( " + grouping_expr + " )"
+        return "( Group " + grouping_expr + " )"
 
     def visit_Literal(self, literal):
-        return literal.value
+        return '( ' + str(literal.value) + ' )'
 
     def visit_Unary(self, unary):
-        return unary.operator + unary.right_expr.accept(self)
+        return '( ' + unary.operator.literal + unary.right_expr.accept(self) + ' )'
 
 
 class TokenIterator(utilities.PloxIterator):
     def __init__(self, tokens):
         super().__init__(tokens)
 
-    def match(self, token, match_list):
+    def match(self, match_list):
+        token = self.peek()
         if token is None:
             return False
         if token.type in match_list:
@@ -112,7 +113,6 @@ class Parser:
             elif token.type == ps.OPEN_PAREN:
                 syntax_tree = syntax_trees.Grouping(self.expression())
                 if self.tokens.match([ps.CLOSE_PAREN]):
-                        self.tokens.advance()
                         return syntax_tree
                 else:
                     raise PloxSyntaxError("Syntax Error; Missing )", self.tokens.peek().line)
