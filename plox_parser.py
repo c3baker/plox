@@ -41,7 +41,7 @@ class PloxSyntaxError(Exception):
         super().__init__(self.message)
 
     def get_error_message(self):
-        return self.message
+        return " Syntax Error: " + self.message
 
 
 class Parser:

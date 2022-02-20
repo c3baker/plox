@@ -80,7 +80,7 @@ class LexicalError(Exception):
         super().__init__(self.message)
 
     def get_error_message(self):
-        return self.message
+        return " Lexical Error: " + self.message
 
 
 class Token:
