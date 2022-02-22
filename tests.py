@@ -31,9 +31,9 @@ class ScannerTests(unittest.TestCase):
                 "    var r = basic_function(xk / 3);" \
                 "    for(var i = 0; i < 10;  "
 
-    program_2 = "(3 + 7) * (8 - 2)"
+    program_2 = "(3 + 7) * (8 - 2);"
     printed_syntax_2 = "( * ( Group ( + ( 3.0 ) ( 7.0 ) ) ) ( Group ( - ( 8.0 ) ( 2.0 ) ) ) )"
-    program_3 = "!(11 >= 17) + (77 / 8) - 144"
+    program_3 = "!(11 >= 17) + (77 / 8) - 144;"
     printed_syntax_3 = "( - ( + ( !( Group ( >= ( 11.0 ) ( 17.0 ) ) ) ) ( Group ( / ( 77.0 ) ( 8.0 ) ) ) ) ( 144.0 ) )  "
 
     def setUp(self):
@@ -69,12 +69,17 @@ class ScannerTests(unittest.TestCase):
 
         for expression, result in zip(expressions, expected_results):
             self.scanner = lex.Scanner(expression)
-            self.scanner.get_scanner().scan()
+            self.scanner.scan()
             self.parser = par.Parser(self.scanner.get_scanner().get_tokens())
             parsed_expression = self.parser.parse()
-            printed_syntax = parsed_expression.accept(printer)
-            self.assertEqual(printed_syntax, result,
-                         "Syntax Tree output does not matched expected result.")
+            for p in parsed_expression:
+                printed_syntax = p.accept(printer)
+                self.assertEqual(printed_syntax.strip(), result.strip(),
+                                 "Syntax Tree output does not matched expected result.")
+                
+
+
+
 
 
 

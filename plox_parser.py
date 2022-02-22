@@ -19,6 +19,13 @@ class TreePrinter:
     def visit_Unary(self, unary):
         return '( ' + unary.operator.literal + unary.right_expr.accept(self) + ' )'
 
+    def visit_ExprStmt(self, exprstmt):
+        return exprstmt.expr.accept(self)
+
+    def visit_PrintStmt(self, pstmt):
+        expr = pstmt.expr.accept(self)
+        return "( PRINT " + expr + ' )'
+
 
 class TokenIterator(utilities.PloxIterator):
     def __init__(self, tokens):
@@ -50,6 +57,10 @@ class Parser:
     def __init__(self, scanned_tokens):
         if self.parser is None:
             self.parser = self._Parser(scanned_tokens)
+        else:
+            self.parser.tokens = scanned_tokens
+            self.parser.statements = []
+
 
     def parse(self):
         syntax_tree = self.parser.parse()
@@ -58,11 +69,31 @@ class Parser:
     class _Parser:
         def __init__(self, scanned_tokens):
             self.tokens = TokenIterator(scanned_tokens)
-            self.index = 0
+            self.statements = []
 
         def parse(self):
-            p_expr = self.expression()
-            return p_expr
+            while self.tokens.list_end() is False:
+                stmt = self.statement()
+                self.statements.append(stmt)
+            return self.statements
+
+        def statement(self):
+            if self.tokens.match([ps.KEYWORD_PRINT]):
+                return self.statement_print()
+            else:
+                return self.statement_expression()
+
+        def statement_print(self):
+            expr = self.expression()
+            if self.tokens.match([ps.SEMI_COLON]) is False:
+                raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
+            return syntax_trees.PrintStmt(expr)
+
+        def statement_expression(self):
+            expr = self.expression()
+            if self.tokens.match([ps.SEMI_COLON]) is False:
+                raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
+            return syntax_trees.ExprStmt(expr)
 
         def expression(self):
             return self.equality()

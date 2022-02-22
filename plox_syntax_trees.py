@@ -2,6 +2,8 @@ Type_Binary = 0
 Type_Grouping = 1
 Type_Literal = 2
 Type_Unary = 3
+Type_ExprStmt = 4
+Type_PrintStmt = 5
 
 
 class Binary:
@@ -44,6 +46,26 @@ class Unary:
 
     def accept(self, visitor): 
         val = visitor.visit_Unary(self)
+        return val
+
+
+class ExprStmt:
+    def __init__(self, expr):
+        self.expr = expr
+        self.type = Type_ExprStmt
+
+    def accept(self, visitor): 
+        val = visitor.visit_ExprStmt(self)
+        return val
+
+
+class PrintStmt:
+    def __init__(self, expr):
+        self.expr = expr
+        self.type = Type_PrintStmt
+
+    def accept(self, visitor): 
+        val = visitor.visit_PrintStmt(self)
         return val
 
 

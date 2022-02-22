@@ -211,5 +211,8 @@ class Scanner:
     def get_scanner(self):
         return self.scanner
 
+    def scan(self):
+        self.scanner.scan()
+
 
 

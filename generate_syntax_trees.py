@@ -1,7 +1,8 @@
-ast_types = ['Binary', 'Grouping', 'Literal', 'Unary']
-ast_type_enum = {'Binary' : 0, 'Grouping' : 1, 'Literal' : 2, 'Unary' : 3}
+ast_types = ['Binary', 'Grouping', 'Literal', 'Unary', 'ExprStmt', 'PrintStmt']
+ast_type_enum = {'Binary': 0, 'Grouping': 1, 'Literal': 2, 'Unary': 3, 'ExprStmt': 4, 'PrintStmt': 5}
 ast_defines = {'Binary': ['left_expr', 'operator', 'right_expr'],
-               'Grouping': ['expr'], 'Literal': ['value'], 'Unary': ['operator', 'right_expr']}
+               'Grouping': ['expr'], 'Literal': ['value'], 'Unary': ['operator', 'right_expr'],
+               'ExprStmt': ['expr'], 'PrintStmt': ['expr']}
 
 def write_line(file_name, line, indentation=0):
     for i in range(indentation):
