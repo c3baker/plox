@@ -1,6 +1,7 @@
 import unittest
 import plox_scanner as lex
 import plox_parser as par
+import plox_interpreter as itr
 
 class ScannerTests(unittest.TestCase):
 
@@ -76,7 +77,40 @@ class ScannerTests(unittest.TestCase):
                 printed_syntax = p.accept(printer)
                 self.assertEqual(printed_syntax.strip(), result.strip(),
                                  "Syntax Tree output does not matched expected result.")
-                
+
+
+class TestPrograms(unittest.TestCase):
+    prog_1 = "print (3 * 4) + (17 - 3);"
+    prog_2 = "print 3*2 + (11 - 10) - 7;"
+    prog_3 = "var x = 4;" \
+             "y = 7;" \
+             "print x * y ;"
+
+    def setUp(self):
+        self.scanner = lex.Scanner("")
+        self.parser = par.Parser(self.scanner.get_scanned_tokens())
+        self.intr = itr.Interpreter()
+
+    def tearDown(self):
+        pass
+
+
+    def test_program_1(self):
+        self.scanner.scan(self.prog_1)
+        self.parser.parse(self.scanner.get_scanned_tokens())
+        self.intr.interpret(self.parser.get_parsed_statements())
+
+    def test_program_2(self):
+        self.scanner.scan(self.prog_2)
+        self.parser.parse(self.scanner.get_scanned_tokens())
+        self.intr.interpret(self.parser.get_parsed_statements())
+
+    def test_program_3(self):
+        self.scanner.scan(self.prog_3)
+        self.parser.parse(self.scanner.get_scanned_tokens())
+        self.intr.interpret(self.parser.get_parsed_statements())
+
+
 
 
 

@@ -1,3 +1,12 @@
+class PloxError(Exception):
+    def __init__(self, line, message):
+        super().__init__(message)
+        self.line = line
+        self.message = message
+
+    def get_error_message(self):
+        return "Error on line " + str(self.line) + ": " + self.message
+
 class PloxIterator:
 
     def __init__(self, element_list):
@@ -44,3 +53,7 @@ class PloxIterator:
     def peek_next(self):
         return None if self.list_end() else self._list[self._index + 1]
 
+def report_error(error):
+    if not isinstance(error, PloxError):
+        raise Exception("report_error can only report a Plox Exception!")
+    print("[ Line %d ] %s" % (error.line, error.get_error_message()))

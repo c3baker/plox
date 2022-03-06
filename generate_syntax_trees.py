@@ -1,8 +1,8 @@
-ast_types = ['Binary', 'Grouping', 'Literal', 'Unary', 'ExprStmt', 'PrintStmt']
-ast_type_enum = {'Binary': 0, 'Grouping': 1, 'Literal': 2, 'Unary': 3, 'ExprStmt': 4, 'PrintStmt': 5}
+ast_types = ['Binary', 'Grouping', 'Literal', 'Unary', 'ExprStmt', 'PrintStmt', 'Dclr', 'Idnt', 'Assign']
 ast_defines = {'Binary': ['left_expr', 'operator', 'right_expr'],
-               'Grouping': ['expr'], 'Literal': ['value'], 'Unary': ['operator', 'right_expr'],
-               'ExprStmt': ['expr'], 'PrintStmt': ['expr']}
+               'Grouping': ['expr'], 'Literal': ['literal'], 'Unary': ['operator', 'right_expr'],
+               'ExprStmt': ['expr'], 'PrintStmt': ['expr'], 'Dclr': ['identifier', 'expr'],
+               'Idnt': ['identifier'], 'Assign': ['left_side', 'right_side']}
 
 def write_line(file_name, line, indentation=0):
     for i in range(indentation):
@@ -33,7 +33,7 @@ def write_ast_class(output_file, ast_type):
 def define_ast(output_dir, base_name):
     with open(output_dir + '\\' + base_name + '.py', 'w') as f:
         for ast_type in ast_types:
-            f.write('Type_' + ast_type + ' = ' + str(ast_type_enum[ast_type]) + '\n')
+            f.write('Type_' + ast_type + ' = ' + str(ast_types.index(ast_type)) + '\n')
         f.write('\n\n')
         for ast_type in ast_types:
             write_ast_class(f, ast_type)

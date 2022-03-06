@@ -4,6 +4,9 @@ Type_Literal = 2
 Type_Unary = 3
 Type_ExprStmt = 4
 Type_PrintStmt = 5
+Type_Dclr = 6
+Type_Idnt = 7
+Type_Assign = 8
 
 
 class Binary:
@@ -29,8 +32,8 @@ class Grouping:
 
 
 class Literal:
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, literal):
+        self.literal = literal
         self.type = Type_Literal
 
     def accept(self, visitor): 
@@ -66,6 +69,38 @@ class PrintStmt:
 
     def accept(self, visitor): 
         val = visitor.visit_PrintStmt(self)
+        return val
+
+
+class Dclr:
+    def __init__(self, identifier, expr):
+        self.identifier = identifier
+        self.expr = expr
+        self.type = Type_Dclr
+
+    def accept(self, visitor): 
+        val = visitor.visit_Dclr(self)
+        return val
+
+
+class Idnt:
+    def __init__(self, identifier):
+        self.identifier = identifier
+        self.type = Type_Idnt
+
+    def accept(self, visitor): 
+        val = visitor.visit_Idnt(self)
+        return val
+
+
+class Assign:
+    def __init__(self, left_side, right_side):
+        self.left_side = left_side
+        self.right_side = right_side
+        self.type = Type_Assign
+
+    def accept(self, visitor): 
+        val = visitor.visit_Assign(self)
         return val
 
 

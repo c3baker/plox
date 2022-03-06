@@ -39,7 +39,6 @@ BANG = 35
 NUMBER = 36
 KEYWORD_NIL = 37
 
-
 class SourceIterator(utilities.PloxIterator):
     def __init__(self, source):
         super().__init__(source)
@@ -74,10 +73,9 @@ class SourceIterator(utilities.PloxIterator):
         return ret
 
 
-class LexicalError(Exception):
-    def __init__(self, message):
-        self.message = message
-        super().__init__(self.message)
+class LexicalError(utilities.PloxError):
+    def __init__(self, line, message):
+        super().__init__(line, message)
 
     def get_error_message(self):
         return " Lexical Error: " + self.message
@@ -91,6 +89,9 @@ class Token:
 
     def get_type(self):
         return self.type
+
+    def get_value(self):
+        return self.literal
 
 class Scanner:
     scanner = None
@@ -185,7 +186,8 @@ class Scanner:
             else:
                 self.add_token(token_id)
 
-        def scan(self):
+        def scan(self, source=None):
+            self.source = SourceIterator(source) if source is not None else self.source
             while not self.source.peek() is None:
                 c = self.source.advance()
                 self.source.start_next_token()
@@ -211,8 +213,11 @@ class Scanner:
     def get_scanner(self):
         return self.scanner
 
-    def scan(self):
-        self.scanner.scan()
+    def get_scanned_tokens(self):
+        return self.scanner.get_tokens()
+
+    def scan(self, source=None):
+        self.scanner.scan(source)
 
 
 

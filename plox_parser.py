@@ -2,7 +2,6 @@ import plox_scanner as ps
 import plox_syntax_trees as syntax_trees
 import plox_utilities as utilities
 
-
 class TreePrinter:
     def visit_Binary(self, binary):
         left_expr = binary.left_expr.accept(self)
@@ -26,6 +25,16 @@ class TreePrinter:
         expr = pstmt.expr.accept(self)
         return "( PRINT " + expr + ' )'
 
+    def visit_Dclr(self, dclr):
+        idnt = dclr.identifier.accept(self)
+        if dclr.expr is not None:
+            expr = dclr.expr.accept(self)
+            return "( VAR = " + idnt + ' ' + expr + ' )'
+        return "( VAR " + idnt + ' )'
+
+    def visit_Idnt(self, idnt):
+        return idnt.name
+
 
 class TokenIterator(utilities.PloxIterator):
     def __init__(self, tokens):
@@ -41,11 +50,9 @@ class TokenIterator(utilities.PloxIterator):
         return False
 
 
-class PloxSyntaxError(Exception):
+class PloxSyntaxError(utilities.PloxError):
     def __init__(self, message, line):
-        self.message = message
-        self.line = line
-        super().__init__(self.message)
+        super().__init__(line, message)
 
     def get_error_message(self):
         return " Syntax Error: " + self.message
@@ -57,25 +64,46 @@ class Parser:
     def __init__(self, scanned_tokens):
         if self.parser is None:
             self.parser = self._Parser(scanned_tokens)
-        else:
-            self.parser.tokens = scanned_tokens
-            self.parser.statements = []
 
-
-    def parse(self):
-        syntax_tree = self.parser.parse()
+    def parse(self, scanned_tokens=None):
+        syntax_tree = self.parser.parse(scanned_tokens)
         return syntax_tree
+
+    def get_parsed_statements(self):
+        return self.parser.statements
 
     class _Parser:
         def __init__(self, scanned_tokens):
             self.tokens = TokenIterator(scanned_tokens)
             self.statements = []
 
-        def parse(self):
+        def parse(self, scanned_tokens=None):
+            self.statements = []
+            self.tokens = TokenIterator(scanned_tokens) if scanned_tokens is not None else self.tokens
             while self.tokens.list_end() is False:
-                stmt = self.statement()
-                self.statements.append(stmt)
+                dclr = self.declaration()
+                self.statements.append(dclr)
             return self.statements
+
+        def declaration(self):
+            try:
+                if self.tokens.match([ps.KEYWORD_VAR]):
+                    return self.var_declaration_statement()
+                return self.statement()
+            except PloxSyntaxError as e:
+                utilities.report_error(e)
+
+        def var_declaration_statement(self):
+            expr = None
+            if self.tokens.match([ps.IDENTIFIER]):
+                idnt = syntax_trees.Idnt(self.tokens.previous())
+                if self.tokens.match([ps.ASSIGN]):
+                    expr = self.expression()
+                if not self.tokens.match([ps.SEMI_COLON]):
+                    raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
+            else:
+                raise PloxSyntaxError("Expected identifier after var.", self.tokens.previous().line)
+            return syntax_trees.Dclr(idnt, expr)
 
         def statement(self):
             if self.tokens.match([ps.KEYWORD_PRINT]):
@@ -96,7 +124,16 @@ class Parser:
             return syntax_trees.ExprStmt(expr)
 
         def expression(self):
-            return self.equality()
+            return self.assignment()
+
+        def assignment(self):
+            expr = self.equality()
+            if self.tokens.match([ps.ASSIGN]):
+                if isinstance(expr, syntax_trees.Idnt):
+                    assignment = self.equality()
+                    return syntax_trees.Assign(expr, assignment)
+                raise PloxSyntaxError("Assignment target wrong type.", self.tokens.previous().line)
+            return expr
 
         def equality(self):
             expr = self.comparision()
@@ -140,7 +177,9 @@ class Parser:
             token = self.tokens.advance()
             if token.type == ps.NUMBER or token.type == ps.STRING or token.type == ps.KEYWORD_TRUE or \
                token.type == ps.KEYWORD_FALSE or token.type == ps.KEYWORD_NIL:
-                    return syntax_trees.Literal(token.literal)
+                    return syntax_trees.Literal(token)
+            elif token.type == ps.IDENTIFIER:
+                return syntax_trees.Idnt(token)
             elif token.type == ps.OPEN_PAREN:
                 syntax_tree = syntax_trees.Grouping(self.expression())
                 if self.tokens.match([ps.CLOSE_PAREN]):
