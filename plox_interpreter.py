@@ -40,12 +40,14 @@ class Environment:
             self.contexts[-1][name] = value
 
         def find_variable(self, name):
+            c = None
             self.contexts.reverse()
             for context in self.contexts:
                 if name in context:
-                   return context
+                   c = context
+                   break
             self.contexts.reverse() # Put the list back to its original order
-            return None
+            return c
 
         def assign_variable(self, name, value):
             context = self.find_variable(name)
@@ -195,3 +197,10 @@ class Interpreter:
         def visit_ExprStmt(self, exprstmt):
             expr_result = self.evaluation(exprstmt.expr)
             return None
+
+        def visit_Block(self, block):
+            self.environment.enter_block()
+            for stmt in block.stmts:
+                self.execute(stmt)
+            self.environment.exit_block()
+

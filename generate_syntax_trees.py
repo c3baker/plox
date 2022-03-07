@@ -1,8 +1,8 @@
-ast_types = ['Binary', 'Grouping', 'Literal', 'Unary', 'ExprStmt', 'PrintStmt', 'Dclr', 'Idnt', 'Assign']
+ast_types = ['Binary', 'Grouping', 'Literal', 'Unary', 'ExprStmt', 'PrintStmt', 'Dclr', 'Idnt', 'Assign', 'Block']
 ast_defines = {'Binary': ['left_expr', 'operator', 'right_expr'],
                'Grouping': ['expr'], 'Literal': ['literal'], 'Unary': ['operator', 'right_expr'],
                'ExprStmt': ['expr'], 'PrintStmt': ['expr'], 'Dclr': ['identifier', 'expr'],
-               'Idnt': ['identifier'], 'Assign': ['left_side', 'right_side']}
+               'Idnt': ['identifier'], 'Assign': ['left_side', 'right_side'], 'Block': ['stmts']}
 
 def write_line(file_name, line, indentation=0):
     for i in range(indentation):

@@ -82,16 +82,21 @@ class Parser:
             self.tokens = TokenIterator(scanned_tokens) if scanned_tokens is not None else self.tokens
             while self.tokens.list_end() is False:
                 dclr = self.declaration()
-                self.statements.append(dclr)
+                if dclr is not None:
+                    self.statements.append(dclr)
             return self.statements
+
 
         def declaration(self):
             try:
                 if self.tokens.match([ps.KEYWORD_VAR]):
                     return self.var_declaration_statement()
+                if self.tokens.match([ps.OPEN_BRACE]):
+                    return self.block()
                 return self.statement()
             except PloxSyntaxError as e:
                 utilities.report_error(e)
+            return None
 
         def var_declaration_statement(self):
             expr = None
@@ -122,6 +127,18 @@ class Parser:
             if self.tokens.match([ps.SEMI_COLON]) is False:
                 raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
             return syntax_trees.ExprStmt(expr)
+
+        def block(self):
+            block_statements = []
+            while self.tokens.peek().type != ps.CLOSE_BRACE and self.tokens.peek() is not None:
+                block_statements.append(self.declaration())
+            if not self.tokens.match([ps.CLOSE_BRACE]):
+                raise PloxSyntaxError("Missing }.", self.tokens.previous().line)
+            return syntax_trees.Block(block_statements)
+
+
+
+
 
         def expression(self):
             return self.assignment()

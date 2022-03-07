@@ -7,6 +7,7 @@ Type_PrintStmt = 5
 Type_Dclr = 6
 Type_Idnt = 7
 Type_Assign = 8
+Type_Block = 9
 
 
 class Binary:
@@ -101,6 +102,16 @@ class Assign:
 
     def accept(self, visitor): 
         val = visitor.visit_Assign(self)
+        return val
+
+
+class Block:
+    def __init__(self, stmts):
+        self.stmts = stmts
+        self.type = Type_Block
+
+    def accept(self, visitor): 
+        val = visitor.visit_Block(self)
         return val
 
 
