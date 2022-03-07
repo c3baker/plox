@@ -83,7 +83,7 @@ class TestPrograms(unittest.TestCase):
     prog_1 = "print (3 * 4) + (17 - 3);"
     prog_2 = "print 3*2 + (11 - 10) - 7;"
     prog_3 = "var x = 4;" \
-             "y = 7;" \
+             "var y = 7;" \
              "print x * y ;"
 
     def setUp(self):
@@ -107,6 +107,27 @@ class TestPrograms(unittest.TestCase):
 
     def test_program_3(self):
         self.scanner.scan(self.prog_3)
+        self.parser.parse(self.scanner.get_scanned_tokens())
+        self.intr.interpret(self.parser.get_parsed_statements())
+
+    def test_code_blocks_and_variables(self):
+        program = "var x = 33;" \
+                  "var y = \"XY\"; " \
+                  "print x;" \
+                  "{" \
+                  "    var x = 11;" \
+                  "    print x;" \
+                  "    print y;" \
+                  "    {" \
+                  "        var x = \"ABCDFDX\"; " \
+                  "        print x;" \
+                  "        print y;" \
+                  "    }" \
+                  "    print x;" \
+                  "}" \
+                  "print x;" \
+                  "print y;"
+        self.scanner.scan(program)
         self.parser.parse(self.scanner.get_scanned_tokens())
         self.intr.interpret(self.parser.get_parsed_statements())
 
