@@ -165,7 +165,7 @@ class TreeEvaluator:
                 self.environment.assign_variable(var_name, assign_value)
             except Exception:
                 raise RuntimeError("Implicit Declaration of Variable %s." % var_name, assign.left_side.line)
-            return None
+            return assign_value
 
 
 class Interpreter:

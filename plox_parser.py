@@ -203,7 +203,7 @@ class Parser:
 
         def unary(self):
             if self.tokens.match([ps.BANG, ps.MINUS]):
-                return syntax_trees.Unary(self.tokens.previous(), self.unary(())
+                return syntax_trees.Unary(self.tokens.previous(), self.unary())
             else:
                 return self.primary()
 
