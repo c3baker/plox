@@ -113,8 +113,26 @@ class Parser:
         def statement(self):
             if self.tokens.match([ps.KEYWORD_PRINT]):
                 return self.statement_print()
+            elif self.tokens.match([ps.KEYWORD_IF]):
+                return self.statement_if()
             else:
                 return self.statement_expression()
+
+        def statement_if(self):
+            expr = self.expression()
+            else_branch = None
+            if not isinstance(expr, syntax_trees.Grouping):
+                # should be structured as if ( expr )
+                raise PloxSyntaxError("Expected valid expression after \"if\" statement")
+            if_branch = self.declaration()
+            if not isinstance(if_branch, syntax_trees.Block):
+                raise PloxSyntaxError("Missing valid execution block \"{...}\" for if-statement true branch")
+            if self.tokens.match([ps.KEYWORD_ELSE]):
+                else_branch = self.declaration()
+                if not isinstance(else_branch, syntax_trees.Block):
+                    raise PloxSyntaxError("Missing valid execution block \"{...}\" for else branch")
+
+            return syntax_trees.IfStmt(expr, if_branch, else_branch)
 
         def statement_print(self):
             expr = self.expression()

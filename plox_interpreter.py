@@ -80,10 +80,22 @@ class TreeEvaluator:
     def evaluation(self, expr):
         return self.evaluator.evaluate(expr)
 
+    def is_true(self, result):
+        return self.evaluator.is_true(result)
+
     class _TreeEvaluator:
 
         def __init__(self):
             self.environment = Environment()
+
+        def is_true(self, value):
+            if value is None:
+                return False
+            if value == 0.0:
+                return False
+            if value is False:
+                return False
+            return True
 
         def evaluate(self, expr):
             return expr.accept(self)
@@ -138,13 +150,12 @@ class TreeEvaluator:
             operator = unary.operator.type
 
             if operator == scanner.BANG:
-                if result is False or isinstance(result, float):
-                    return not result
-                return False
+                bool_result = self.is_true(result)
+                return not bool_result
 
             elif operator == scanner.MINUS:
                 if not isinstance(result, float):
-                    raise PloxRuntimeError(" Negation Expected NUMBER", unary.operator.line)
+                    raise PloxRuntimeError(" Negation expects NUMBER", unary.operator.line)
                 return -result
 
         def visit_Assign(self, assign):
@@ -193,6 +204,7 @@ class Interpreter:
         def visit_PrintStmt(self, printstmt):
             expr_result = self.evaluation(printstmt.expr)
             print(str(expr_result))
+            return None
 
         def visit_ExprStmt(self, exprstmt):
             expr_result = self.evaluation(exprstmt.expr)
@@ -203,4 +215,14 @@ class Interpreter:
             for stmt in block.stmts:
                 self.execute(stmt)
             self.environment.exit_block()
+            return None
+
+        def visit_IfStmt(self, ifstmt):
+            if_expr_result = self.is_true(self.evaluation(ifstmt.expr))
+            if if_expr_result is True:
+                self.execute(ifstmt.if_block)
+            elif ifstmt.else_block is not None:
+                self.execute(ifstmt.else_block)
+            return None
+
 

@@ -131,7 +131,54 @@ class TestPrograms(unittest.TestCase):
         self.parser.parse(self.scanner.get_scanned_tokens())
         self.intr.interpret(self.parser.get_parsed_statements())
 
+    def test_if_statment_true(self):
+        program = "if(true)" \
+                  "{" \
+                  "    print 10;" \
+                  "}" \
+                  "else" \
+                  "{" \
+                  "    print 20;" \
+                  "}"
+        self.scanner.scan(program)
+        self.parser.parse(self.scanner.get_scanned_tokens())
+        self.intr.interpret(self.parser.get_parsed_statements())
 
+    def test_if_statment_false(self):
+        program = "if(false)" \
+                  "{" \
+                  "    print 10;" \
+                  "}" \
+                  "else" \
+                  "{" \
+                  "    print 20;" \
+                  "}"
+        self.scanner.scan(program)
+        self.parser.parse(self.scanner.get_scanned_tokens())
+        self.intr.interpret(self.parser.get_parsed_statements())
+
+    def test_if_statments_nested(self):
+        program = "if(true)" \
+                  "{" \
+                  "    print 10;" \
+                  "    if(true)" \
+                  "    {" \
+                  "        print 20;" \
+                  "        if(false)" \
+                  "        {" \
+                  "             print 30;" \
+                  "        }" \
+                  "        else" \
+                  "        {" \
+                  "            print 40;" \
+                  "        }" \
+                  "    }" \
+                  "    " \
+                  "}" \
+
+        self.scanner.scan(program)
+        self.parser.parse(self.scanner.get_scanned_tokens())
+        self.intr.interpret(self.parser.get_parsed_statements())
 
 
 

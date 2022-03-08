@@ -133,7 +133,12 @@ class Scanner:
 
         def add_token(self, token_type):
             current_string = self.source.source_current_string()
-            literal = float(current_string) if token_type == NUMBER else current_string
+            if token_type == KEYWORD_TRUE:
+                literal = True
+            elif token_type == KEYWORD_FALSE:
+                literal = False
+            else:
+                literal = float(current_string) if token_type == NUMBER else current_string
             self.tokens.append(Token(token_type, literal, self.source.get_current_line()))
 
         def is_valid_numeric_symbol(self, symbol):

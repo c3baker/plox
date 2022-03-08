@@ -8,6 +8,7 @@ Type_Dclr = 6
 Type_Idnt = 7
 Type_Assign = 8
 Type_Block = 9
+Type_IfStmt = 10
 
 
 class Binary:
@@ -112,6 +113,18 @@ class Block:
 
     def accept(self, visitor): 
         val = visitor.visit_Block(self)
+        return val
+
+
+class IfStmt:
+    def __init__(self, expr, if_block, else_block):
+        self.expr = expr
+        self.if_block = if_block
+        self.else_block = else_block
+        self.type = Type_IfStmt
+
+    def accept(self, visitor): 
+        val = visitor.visit_IfStmt(self)
         return val
 
 
