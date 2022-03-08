@@ -61,11 +61,13 @@ class PloxSyntaxError(utilities.PloxError):
 class Parser:
     parser = None
 
-    def __init__(self, scanned_tokens):
+    def __init__(self):
         if self.parser is None:
-            self.parser = self._Parser(scanned_tokens)
+            self.parser = self._Parser()
 
-    def parse(self, scanned_tokens=None):
+    def parse(self, scanned_tokens):
+        if not isinstance(scanned_tokens, list):
+            raise Exception("Parser expected tokens to be in a list!")
         syntax_tree = self.parser.parse(scanned_tokens)
         return syntax_tree
 
@@ -73,19 +75,18 @@ class Parser:
         return self.parser.statements
 
     class _Parser:
-        def __init__(self, scanned_tokens):
-            self.tokens = TokenIterator(scanned_tokens)
+        def __init__(self):
+            self.tokens = None
             self.statements = []
 
-        def parse(self, scanned_tokens=None):
+        def parse(self, scanned_tokens=[]):
             self.statements = []
-            self.tokens = TokenIterator(scanned_tokens) if scanned_tokens is not None else self.tokens
+            self.tokens = TokenIterator(scanned_tokens)
             while self.tokens.list_end() is False:
                 dclr = self.declaration()
                 if dclr is not None:
                     self.statements.append(dclr)
             return self.statements
-
 
         def declaration(self):
             try:
@@ -142,7 +143,9 @@ class Parser:
 
         def statement_expression(self):
             expr = self.expression()
-            if self.tokens.match([ps.SEMI_COLON]) is False:
+            # To allow for pure expressions to still be evaluated on the console
+            # We will only enforce the ; on end of statement rule if the expression is an assignment
+            if self.tokens.match([ps.SEMI_COLON]) is False and isinstance(expr, syntax_trees.Assign):
                 raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
             return syntax_trees.ExprStmt(expr)
 
@@ -153,10 +156,6 @@ class Parser:
             if not self.tokens.match([ps.CLOSE_BRACE]):
                 raise PloxSyntaxError("Missing }.", self.tokens.previous().line)
             return syntax_trees.Block(block_statements)
-
-
-
-
 
         def expression(self):
             return self.assignment()
@@ -204,7 +203,7 @@ class Parser:
 
         def unary(self):
             if self.tokens.match([ps.BANG, ps.MINUS]):
-                return syntax_trees.Unary(self.tokens.previous(), self.unary())
+                return syntax_trees.Unary(self.tokens.previous(), self.unary(())
             else:
                 return self.primary()
 

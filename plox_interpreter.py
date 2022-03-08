@@ -171,9 +171,9 @@ class TreeEvaluator:
 class Interpreter:
 
     interpreter = None
-    def __init__(self):
+    def __init__(self, console_mode=False):
         if self.interpreter is None:
-            self.interpreter = self._Interpreter()
+            self.interpreter = self._Interpreter(console_mode)
 
     def interpret(self, statements):
         for stmt in statements:
@@ -187,11 +187,17 @@ class Interpreter:
 
     class _Interpreter(TreeEvaluator):
 
-        def __init__(self):
+        def __init__(self, console_mode=False):
             super().__init__()
+            self._console_mode = console_mode
 
         def execute(self, stmt):
             stmt.accept(self)
+
+        def console_print(self, result):
+            print("    Result: ")
+            print("            " + str(result))
+            print("")
 
         def visit_Dclr(self, dclr):
             value = None
@@ -208,6 +214,8 @@ class Interpreter:
 
         def visit_ExprStmt(self, exprstmt):
             expr_result = self.evaluation(exprstmt.expr)
+            if self._console_mode:
+                self.console_print(expr_result)
             return None
 
         def visit_Block(self, block):

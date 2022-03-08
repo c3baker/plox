@@ -112,15 +112,14 @@ class Scanner:
                             GREATER_THAN: [GREATER_THAN_EQUALS, '='], ASSIGN: [EQUALS, '='],
                             BANG: [NOT_EQUALS, '=']}
 
-        def __init__(self, source):
-            self._init_members(source)
+        def __init__(self):
+            self._init_members()
 
-        def _init_members(self, source):
+        def _init_members(self):
             self.line = 0
             self.start = 0
             self.current = 0
             self.tokens = []
-            self.source = SourceIterator(source)
 
         def raise_lexical_error(self, message):
             raise LexicalError(message)
@@ -191,8 +190,9 @@ class Scanner:
             else:
                 self.add_token(token_id)
 
-        def scan(self, source=None):
-            self.source = SourceIterator(source) if source is not None else self.source
+        def scan(self, source):
+            self._init_members()
+            self.source = SourceIterator(source)
             while not self.source.peek() is None:
                 c = self.source.advance()
                 self.source.start_next_token()
@@ -209,11 +209,9 @@ class Scanner:
                     else:
                         self.scan_simple_symbol(token_id)
 
-    def __init__(self, source):
+    def __init__(self):
         if not self.scanner:
-            self.scanner = self._Scanner(source)
-        else:
-            self.scanner.set_source(source)
+            self.scanner = self._Scanner()
 
     def get_scanner(self):
         return self.scanner
@@ -221,7 +219,9 @@ class Scanner:
     def get_scanned_tokens(self):
         return self.scanner.get_tokens()
 
-    def scan(self, source=None):
+    def scan(self, source):
+        if not isinstance(source, str):
+            raise Exception("Scanner expects string input for scanning!")
         self.scanner.scan(source)
 
 

@@ -44,9 +44,9 @@ class Literal:
 
 
 class Unary:
-    def __init__(self, operator, right_expr):
+    def __init__(self, operator, expr):
         self.operator = operator
-        self.right_expr = right_expr
+        self.expr = expr
         self.type = Type_Unary
 
     def accept(self, visitor): 

@@ -1,8 +1,11 @@
-ast_types = ['Binary', 'Grouping', 'Literal', 'Unary', 'ExprStmt', 'PrintStmt', 'Dclr', 'Idnt', 'Assign', 'Block']
+import os
+import sys
+
 ast_defines = {'Binary': ['left_expr', 'operator', 'right_expr'],
-               'Grouping': ['expr'], 'Literal': ['literal'], 'Unary': ['operator', 'right_expr'],
+               'Grouping': ['expr'], 'Literal': ['literal'], 'Unary': ['operator', 'expr'],
                'ExprStmt': ['expr'], 'PrintStmt': ['expr'], 'Dclr': ['identifier', 'expr'],
-               'Idnt': ['identifier'], 'Assign': ['left_side', 'right_side'], 'Block': ['stmts']}
+               'Idnt': ['identifier'], 'Assign': ['left_side', 'right_side'], 'Block': ['stmts'],
+               'IfStmt': ['expr', 'if_block', 'else_block']}
 
 def write_line(file_name, line, indentation=0):
     for i in range(indentation):
@@ -31,14 +34,18 @@ def write_ast_class(output_file, ast_type):
 
 
 def define_ast(output_dir, base_name):
-    with open(output_dir + '\\' + base_name + '.py', 'w') as f:
-        for ast_type in ast_types:
-            f.write('Type_' + ast_type + ' = ' + str(ast_types.index(ast_type)) + '\n')
+    output_file = os.path.join(output_dir, base_name)
+    with open(output_file, 'w') as f:
+        i = 0
+        for ast_type in ast_defines.keys():
+            f.write('Type_' + ast_type + ' = ' + str(i) + '\n')
+            i += 1
         f.write('\n\n')
-        for ast_type in ast_types:
+        for ast_type in ast_defines.keys():
             write_ast_class(f, ast_type)
 
 
 if __name__ == '__main__':
-    define_ast('C:\\Users\\CharlesPC\\PycharmProjects\\plox', 'plox_syntax_trees')
+    workspace_dir = os.path.dirname(__file__)
+    define_ast(workspace_dir, 'plox_syntax_trees.py')
 
