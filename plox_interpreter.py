@@ -159,7 +159,7 @@ class TreeEvaluator:
                 return -result
 
         def visit_Assign(self, assign):
-            var_name = self.evaluate(assign.left_side)
+            var_name = assign.left_side.identifier.get_value() # Get the identifier name
             assign_value = self.evaluate(assign.right_side)
             try:
                 self.environment.assign_variable(var_name, assign_value)
