@@ -116,8 +116,19 @@ class Parser:
                 return self.statement_print()
             elif self.tokens.match([ps.KEYWORD_IF]):
                 return self.statement_if()
+            elif self.tokens.match([ps.KEYWORD_WHILE]):
+                return self.statement_while()
             else:
                 return self.statement_expression()
+
+        def statement_while(self):
+            expr = self.expression()
+            if not isinstance(expr, syntax_trees.Grouping):
+                raise PloxSyntaxError("Expected valid expression after \"while\" statement")
+            execution_block = self.declaration()
+            if not isinstance(execution_block, syntax_trees.Block):
+                raise PloxSyntaxError("Expected valid execution block \"{...}\" for while statement")
+            return syntax_trees.WhileStmt(expr, execution_block)
 
         def statement_if(self):
             expr = self.expression()
@@ -205,7 +216,22 @@ class Parser:
             if self.tokens.match([ps.BANG, ps.MINUS]):
                 return syntax_trees.Unary(self.tokens.previous(), self.unary())
             else:
-                return self.primary()
+                return self.call()
+
+        def call(self):
+            callee = self.primary()
+            '''
+            Since x() is a valid call with callee x but so is
+            x()() with callee x() which itself is a call
+            or x()()() with callee x()() which itself is a call with callee
+            x() which itself is a call with callee x... and so on
+            the call must be parsed somehwhat recursively
+            '''
+
+            while self.tokens.match([ps.OPEN_PAREN]):
+                self.parse_call_arguments()
+
+
 
         def primary(self):
             token = self.tokens.advance()

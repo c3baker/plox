@@ -25,9 +25,19 @@ class Environment:
     def get_value(self, name):
         return self.environment.get_variable_value(name)
 
+    def get_global_variables(self):
+        return self.environment.get_global_variables()
+
+    def enter_function(self):
+        self.environment.enter_function()
+
+    def exit_function(self):
+        self.environment.exit_function()
+
     class _Environment:
         def __init__(self):
             self.contexts = []
+            self.stack = []
             self.push_context()
 
         def push_context(self):
@@ -61,6 +71,25 @@ class Environment:
             if context is None:
                 raise Exception("Implicit declaration of variable %s." % name)
             return context[name]
+
+        def get_global_variables(self):
+            return self.contexts[0]  # The first context in the stack is the global context
+
+        def push_non_globals_to_stack(self):
+            while len(self.contexts) > 1:
+                self.stack.append(self.contexts.pop())
+
+        def restore_stack(self):
+            while len(self.stack) > 0:
+                self.contexts.append(self.stack.pop())
+
+        def enter_function(self):
+            self.push_non_globals_to_stack()
+            self.push_context()  # Add context for function
+
+        def exit_function(self):
+            self.pop_context()  # Pop function context
+            self.restore_stack()
 
 class PloxRuntimeError(utilties.PloxError):
     def __init__(self, message, line):
@@ -232,5 +261,11 @@ class Interpreter:
             elif ifstmt.else_block is not None:
                 self.execute(ifstmt.else_block)
             return None
+
+        def visit_WhileStmt(self, whilestmt):
+            while_expr = self.is_true(self.evaluation(whilestmt.expr))
+            while while_expr:
+                self.execute(whilestmt.while_block)
+                while_expr = self.is_true(self.evaluation(whilestmt.expr))
 
 

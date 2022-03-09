@@ -87,8 +87,8 @@ class TestPrograms(unittest.TestCase):
              "print x * y ;"
 
     def setUp(self):
-        self.scanner = lex.Scanner("")
-        self.parser = par.Parser(self.scanner.get_scanned_tokens())
+        self.scanner = lex.Scanner()
+        self.parser = par.Parser()
         self.intr = itr.Interpreter()
 
     def tearDown(self):
@@ -176,6 +176,17 @@ class TestPrograms(unittest.TestCase):
                   "    " \
                   "}" \
 
+        self.scanner.scan(program)
+        self.parser.parse(self.scanner.get_scanned_tokens())
+        self.intr.interpret(self.parser.get_parsed_statements())
+
+    def test_while_statment(self):
+        program = "var i = 10;" \
+                  "while(i)" \
+                  "{" \
+                  "    print i;" \
+                  "    i = i - 1;" \
+                  "}"
         self.scanner.scan(program)
         self.parser.parse(self.scanner.get_scanned_tokens())
         self.intr.interpret(self.parser.get_parsed_statements())
