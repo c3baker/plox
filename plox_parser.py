@@ -155,9 +155,10 @@ class Parser:
         def statement_expression(self):
             expr = self.expression()
             # To allow for pure expressions to still be evaluated on the console
-            # We will only enforce the ; on end of statement rule if the expression is an assignment
-            if self.tokens.match([ps.SEMI_COLON]) is False and isinstance(expr, syntax_trees.Assign):
-                raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
+            # We will only enforce the ; on end of statement rule if the expression is an assignment or call
+            if self.tokens.match([ps.SEMI_COLON]) is False and \
+               (isinstance(expr, syntax_trees.Assign) or isinstance(expr, syntax_trees.CallStmt)):
+                    raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
             return syntax_trees.ExprStmt(expr)
 
         def block(self):
@@ -227,11 +228,9 @@ class Parser:
             x() which itself is a call with callee x... and so on
             the call must be parsed somehwhat recursively
             '''
-
             while self.tokens.match([ps.OPEN_PAREN]):
-                self.parse_call_arguments()
-
-
+               callee = self.parse_call_arguments(callee)
+            return callee
 
         def primary(self):
             token = self.tokens.advance()
@@ -245,8 +244,24 @@ class Parser:
                 if self.tokens.match([ps.CLOSE_PAREN]):
                         return syntax_tree
                 else:
-                    raise PloxSyntaxError("Syntax Error; Missing )", self.tokens.peek().line)
-            raise PloxSyntaxError("Syntax Error: Unexpected Construct", self.tokens.peek().line)
+                    raise PloxSyntaxError("Missing \")\"", self.tokens.peek().line)
+            raise PloxSyntaxError("Unexpected Construct", self.tokens.peek().line)
+
+
+        def parse_call_arguments(self, callee):
+            arguments = []
+            if not self.tokens.match([ps.CLOSE_PAREN]):
+                arguments.append(self.expression())
+                while not self.tokens.match([ps.CLOSE_PAREN]):
+                    if self.tokens.peek is None:
+                        raise PloxSyntaxError("Reached EOF without matching \")\" ", self.tokens.previous().line)
+                    if not self.tokens.match([ps.COMMA]):
+                        raise PloxSyntaxError("Function call arguments must be comma separated.",
+                                              self.tokens.previous().line)
+                    arguments.append(self.expression())
+            return syntax_trees.CallStmt(callee, arguments)
+
+
 
 
 
