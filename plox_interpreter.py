@@ -2,6 +2,27 @@ import plox_scanner as scanner
 import plox_syntax_trees as syntax_trees
 import plox_utilities as utilties
 
+
+class PloxCallable:
+
+    def __init__(self, name, block_stmt, parameter_names=[]):
+        self.function_body = block_stmt
+        self.parameter_names = parameter_names
+        self.callable_name = name
+
+    def __call__(self, interpreter, args=[]):
+        if len(args) != len(self.parameter_names):
+            raise PloxRuntimeError("Function %s expects %d arguments but %d given." % (self.callable_name,
+                                                                                       len(self.parameter_names),
+                                                                                       len(args)))
+        interpreter.save_environment()
+        interpreter.execute_function_body(self.function_body, zip(self.parameter_names, args))
+        interpreter.restore_environment()
+
+    def to_string(self):
+        return "<fn " + self.name + ": " + len(self.parameter_names) + ">"
+
+
 class Environment:
 
     environment = None
@@ -10,14 +31,14 @@ class Environment:
         if self.environment is None:
             self.environment = self._Environment()
 
-    def add_variable(self, name, value):
-        self.environment.add_variable(name, value)
+    def add(self, name, value):
+        self.environment.add(name, value)
 
     def assign_variable(self, name, value):
         return self.environment.assign_variable(name, value)
 
-    def enter_block(self):
-        self.environment.push_context()
+    def enter_block(self, zipped_params_args=[]):
+        self.environment.enter_block(zipped_params_args)
 
     def exit_block(self):
         self.environment.pop_context()
@@ -28,11 +49,11 @@ class Environment:
     def get_global_variables(self):
         return self.environment.get_global_variables()
 
-    def enter_function(self):
-        self.environment.enter_function()
+    def save_environment(self):
+        self.environment.push_non_globals_to_stack()
 
-    def exit_function(self):
-        self.environment.exit_function()
+    def restore_environment(self):
+        self.environment.restore_stack()
 
     class _Environment:
         def __init__(self):
@@ -46,7 +67,15 @@ class Environment:
         def pop_context(self):
             self.contexts.pop()
 
-        def add_variable(self, name, value):
+        def enter_block(self, zipped_params_args):
+            self.push_context()
+            if len(zipped_params_args) > 0:
+                # This is a function call and we need
+                # To add the function arguments to the local environment
+                for param_name, arg in zipped_params_args:
+                    self.add(param_name, arg)
+
+        def add(self, name, value):
             self.contexts[-1][name] = value
 
         def find_variable(self, name):
@@ -82,14 +111,6 @@ class Environment:
         def restore_stack(self):
             while len(self.stack) > 0:
                 self.contexts.append(self.stack.pop())
-
-        def enter_function(self):
-            self.push_non_globals_to_stack()
-            self.push_context()  # Add context for function
-
-        def exit_function(self):
-            self.pop_context()  # Pop function context
-            self.restore_stack()
 
 class PloxRuntimeError(utilties.PloxError):
     def __init__(self, message, line):
@@ -193,8 +214,21 @@ class TreeEvaluator:
             try:
                 self.environment.assign_variable(var_name, assign_value)
             except Exception:
-                raise RuntimeError("Implicit Declaration of Variable %s." % var_name, assign.left_side.line)
+                raise RuntimeError("Implicit declaration of variable %s." % var_name, assign.left_side.line)
             return assign_value
+
+        def visit_Call(self, call):
+            callee = self.evaluate(call.callee).identifier.get_value()
+            callee_name = callee.identifier.get_value()
+            try:
+                function = self.environment.get_value(callee_name)
+            except Exception:
+                raise RuntimeError("Implicit declaration of function %s." % callee_name, call.callee.identifier.line)
+            if not callable(function):
+                raise RuntimeError("Attempting to call a non-callable object %s." % callee_name,
+                                   call.callee.identifier.line)
+
+            return function(self, [self.evaluate(x) for x in call.arguments])
 
 
 class Interpreter:
@@ -213,6 +247,15 @@ class Interpreter:
 
     def execute(self, stmt):
         self.interpreter.execute(stmt)
+
+    def execute_function_body(self, func_body_block, call_args):
+        self.interpreter.visit_Block(func_body_block, call_args)
+
+    def save_environment(self):
+        return self.interpreter.environment.save_environment()
+
+    def restore_environment(self):
+        return self.interpreter.environment.restore_environment()
 
     class _Interpreter(TreeEvaluator):
 
@@ -233,8 +276,15 @@ class Interpreter:
             var_name = dclr.identifier.identifier.get_value()
             if dclr.expr is not None:
                 value = self.evaluation(dclr.expr)
-            self.environment.add_variable(var_name, value)
+            self.environment.add(var_name, value)
             return None
+
+        def visit_FuncDclr(self, f_dclr):
+            func_name = f_dclr.handle.identifier.get_value()
+            parameter_names = [x.identifier.get_value() for x in f_dclr.parameters]
+            function = PloxCallable(func_name, f_dclr.body, parameter_names)
+            self.environment.add(func_name, function)
+
 
         def visit_PrintStmt(self, printstmt):
             expr_result = self.evaluation(printstmt.expr)
@@ -247,7 +297,7 @@ class Interpreter:
                 self.console_print(expr_result)
             return None
 
-        def visit_Block(self, block):
+        def visit_Block(self, block, func_call_args=[]):
             self.environment.enter_block()
             for stmt in block.stmts:
                 self.execute(stmt)
@@ -267,5 +317,7 @@ class Interpreter:
             while while_expr:
                 self.execute(whilestmt.while_block)
                 while_expr = self.is_true(self.evaluation(whilestmt.expr))
+
+
 
 
