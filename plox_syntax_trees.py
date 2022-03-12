@@ -10,7 +10,8 @@ Type_Assign = 8
 Type_Block = 9
 Type_IfStmt = 10
 Type_WhileStmt = 11
-Type_CallStmt = 12
+Type_Call = 12
+Type_FuncDclr = 13
 
 
 class Binary:
@@ -141,14 +142,26 @@ class WhileStmt:
         return val
 
 
-class CallStmt:
+class Call:
     def __init__(self, callee, arguments):
         self.callee = callee
         self.arguments = arguments
-        self.type = Type_CallStmt
+        self.type = Type_Call
 
     def accept(self, visitor): 
-        val = visitor.visit_CallStmt(self)
+        val = visitor.visit_Call(self)
+        return val
+
+
+class FuncDclr:
+    def __init__(self, handle, parameters, body):
+        self.handle = handle
+        self.parameters = parameters
+        self.body = body
+        self.type = Type_FuncDclr
+
+    def accept(self, visitor): 
+        val = visitor.visit_FuncDclr(self)
         return val
 
 

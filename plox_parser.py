@@ -92,6 +92,8 @@ class Parser:
             try:
                 if self.tokens.match([ps.KEYWORD_VAR]):
                     return self.var_declaration_statement()
+                if self.tokens.match([ps.KEYWORD_FUN]):
+                    return self.func_declaration_statement()
                 if self.tokens.match([ps.OPEN_BRACE]):
                     return self.block()
                 return self.statement()
@@ -100,16 +102,33 @@ class Parser:
             return None
 
         def var_declaration_statement(self):
-            expr = None
-            if self.tokens.match([ps.IDENTIFIER]):
-                idnt = syntax_trees.Idnt(self.tokens.previous())
-                if self.tokens.match([ps.ASSIGN]):
-                    expr = self.expression()
-                if not self.tokens.match([ps.SEMI_COLON]):
-                    raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
-            else:
-                raise PloxSyntaxError("Expected identifier after var.", self.tokens.previous().line)
+            idnt = self.expression()
+            if not isinstance(idnt, syntax_trees.Idnt):
+                raise PloxSyntaxError("Expected identifier in variable declaration.", self.tokens.previous().line)
+            if self.tokens.match([ps.ASSIGN]):
+                expr = self.expression()
+            if not self.tokens.match([ps.SEMI_COLON]):
+                raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
             return syntax_trees.Dclr(idnt, expr)
+
+        def func_declaration_statement(self):
+            handle = self.expression()
+            parameters = []
+            if not isinstance(handle, syntax_trees.Idnt):
+                raise PloxSyntaxError("Expected function declaration.", self.tokens.previous().line)
+            if not self.tokens.match([ps.OPEN_PAREN]):
+                raise PloxSyntaxError("Function declaration expected parameter list.", self.tokens.previous().line)
+            while not self.tokens.match([ps.CLOSE_PAREN]):
+                if self.tokens.peek() is None:
+                    raise PloxSyntaxError("Reached EOF without finding closing \")\".", self.tokens.previous().line)
+                param = self.expression()
+                if not isinstance(param, syntax_trees.Idnt):
+                    raise PloxSyntaxError("Invalid parameter declaration.", self.tokens.previous().line)
+                parameters.append(param)
+            body = self.declaration()
+            if not isinstance(body, syntax_trees.Block):
+                raise PloxSyntaxError("Expected function body definition.", self.tokens.previous().line)
+            return syntax_trees.FuncDclr(handle, parameters, body)
 
         def statement(self):
             if self.tokens.match([ps.KEYWORD_PRINT]):
@@ -156,9 +175,9 @@ class Parser:
             expr = self.expression()
             # To allow for pure expressions to still be evaluated on the console
             # We will only enforce the ; on end of statement rule if the expression is an assignment or call
-            if self.tokens.match([ps.SEMI_COLON]) is False and \
-               (isinstance(expr, syntax_trees.Assign) or isinstance(expr, syntax_trees.CallStmt)):
-                    raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
+            if self.tokens.match([ps.SEMI_COLON]) is False and (isinstance(expr, syntax_trees.Assign) or
+                    isinstance(expr, syntax_trees.CallStmt)):
+                raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
             return syntax_trees.ExprStmt(expr)
 
         def block(self):
@@ -226,11 +245,19 @@ class Parser:
             x()() with callee x() which itself is a call
             or x()()() with callee x()() which itself is a call with callee
             x() which itself is a call with callee x... and so on
-            the call must be parsed somehwhat recursively
+            the call must be parsed somewhat recursively
             '''
             while self.tokens.match([ps.OPEN_PAREN]):
-               callee = self.parse_call_arguments(callee)
+                callee = self.parse_function_call(callee)
             return callee
+
+        def parse_function_call(self, callee):
+            arguments = []
+            while not self.tokens.match([ps.CLOSE_PAREN]):
+                if self.tokens.peek is None:
+                    raise PloxSyntaxError("Expected matching \")\" for function call.")
+                arguments.append(self.expression())
+            return syntax_trees.Call(callee, arguments)
 
         def primary(self):
             token = self.tokens.advance()
@@ -244,23 +271,8 @@ class Parser:
                 if self.tokens.match([ps.CLOSE_PAREN]):
                         return syntax_tree
                 else:
-                    raise PloxSyntaxError("Missing \")\"", self.tokens.peek().line)
-            raise PloxSyntaxError("Unexpected Construct", self.tokens.peek().line)
-
-
-        def parse_call_arguments(self, callee):
-            arguments = []
-            if not self.tokens.match([ps.CLOSE_PAREN]):
-                arguments.append(self.expression())
-                while not self.tokens.match([ps.CLOSE_PAREN]):
-                    if self.tokens.peek is None:
-                        raise PloxSyntaxError("Reached EOF without matching \")\" ", self.tokens.previous().line)
-                    if not self.tokens.match([ps.COMMA]):
-                        raise PloxSyntaxError("Function call arguments must be comma separated.",
-                                              self.tokens.previous().line)
-                    arguments.append(self.expression())
-            return syntax_trees.CallStmt(callee, arguments)
-
+                    raise PloxSyntaxError("Syntax Error; Missing ).", self.tokens.peek().line)
+            raise PloxSyntaxError("Invalid PLOX expression.", self.tokens.peek().line)
 
 
 
