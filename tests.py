@@ -239,10 +239,11 @@ class TestPrograms(unittest.TestCase):
                   "   while (i < n)" \
                   "   {" \
                   "       print fib(i);" \
+                  "       i = i + 1;" \
                   "   }" \
                   "}" \
                   "" \
-                  "fib_seq(10);"
+                  "fib_seq(3);"
 
         self.scanner.scan(program)
         self.parser.parse(self.scanner.get_scanned_tokens())

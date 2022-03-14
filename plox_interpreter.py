@@ -276,6 +276,28 @@ class Interpreter:
                     return left_result / right_result
                 else:
                     raise PloxRuntimeError(" / Operator: Expected NUMBER", binary.operator.line)
+            elif operator == scanner.GREATER_THAN:
+                if isinstance(left_result, float) and isinstance(right_result, float):
+                    return left_result > right_result
+                else:
+                    raise PloxRuntimeError(" > Operator: Expected NUMBER", binary.operator.line)
+            elif operator == scanner.LESS_THAN:
+                if isinstance(left_result, float) and isinstance(right_result, float):
+                    return left_result < right_result
+                else:
+                    raise PloxRuntimeError(" < Operator: Expected NUMBER", binary.operator.line)
+            elif operator == scanner.LESS_THAN_EQUALS:
+                if isinstance(left_result, float) and isinstance(right_result, float):
+                    return left_result <= right_result
+                else:
+                    raise PloxRuntimeError(" <= Operator: Expected NUMBER", binary.operator.line)
+            elif operator == scanner.GREATER_THAN_EQUALS:
+                if isinstance(left_result, float) and isinstance(right_result, float):
+                    return left_result >= right_result
+                else:
+                    raise PloxRuntimeError(" >= Operator: Expected NUMBER", binary.operator.line)
+            elif operator == scanner.EQUALS:
+                return left_result == right_result
             else:
                 raise PloxRuntimeError(" " + binary.operator.literal + " unsupported operator", binary.operator.line)
 
@@ -321,7 +343,10 @@ class Interpreter:
                 raise PloxRuntimeError("Implicit declaration of function %s." % callee_name, call.callee.identifier.line)
             if not callable(function):
                 raise PloxRuntimeError("Attempting to call a non-callable object %s." % callee_name,
-                                   call.callee.identifier.line)
+                                       call.callee.identifier.line)
             return function(self, [self.evaluate(x) for x in call.arguments])
+
+        def visit_ReturnStmt(self, ret_stmt):
+            raise Return(self.evaluate(ret_stmt.ret_val))
 
 
