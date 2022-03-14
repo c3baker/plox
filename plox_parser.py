@@ -102,17 +102,20 @@ class Parser:
             return None
 
         def var_declaration_statement(self):
-            idnt = self.expression()
-            if not isinstance(idnt, syntax_trees.Idnt):
+            expr = self.expression()
+            if isinstance(expr, syntax_trees.Idnt):
+                ident = expr
+                expr = None
+            elif isinstance(expr, syntax_trees.Assign):
+                ident = expr.left_side
+            else:
                 raise PloxSyntaxError("Expected identifier in variable declaration.", self.tokens.previous().line)
-            if self.tokens.match([ps.ASSIGN]):
-                expr = self.expression()
             if not self.tokens.match([ps.SEMI_COLON]):
                 raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
-            return syntax_trees.Dclr(idnt, expr)
+            return syntax_trees.Dclr(ident, expr)
 
         def func_declaration_statement(self):
-            handle = self.expression()
+            handle = self.primary()  # Expect function name
             parameters = []
             if not isinstance(handle, syntax_trees.Idnt):
                 raise PloxSyntaxError("Expected function declaration.", self.tokens.previous().line)
@@ -137,8 +140,16 @@ class Parser:
                 return self.statement_if()
             elif self.tokens.match([ps.KEYWORD_WHILE]):
                 return self.statement_while()
+            elif self.tokens.match([ps.KEYWORD_RETURN]):
+                return self.return_statement()
             else:
                 return self.statement_expression()
+
+        def return_statement(self):
+            ret_val = self.expression()
+            if self.tokens.match([ps.SEMI_COLON]) is False:
+                raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
+            return syntax_trees.ReturnStmt(ret_val)
 
         def statement_while(self):
             expr = self.expression()

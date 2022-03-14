@@ -3,10 +3,11 @@ import sys
 
 ast_defines = {'Binary': ['left_expr', 'operator', 'right_expr'],
                'Grouping': ['expr'], 'Literal': ['literal'], 'Unary': ['operator', 'expr'],
-               'ExprStmt': ['expr'], 'PrintStmt': ['expr'], 'Dclr': ['identifier', 'expr'],
+               'ExprStmt': ['expr'], 'PrintStmt': ['expr'], 'Dclr': ['identifier', 'assign_expr'],
                'Idnt': ['identifier'], 'Assign': ['left_side', 'right_side'], 'Block': ['stmts'],
                'IfStmt': ['expr', 'if_block', 'else_block'], 'WhileStmt':['expr', 'while_block'],
-               'Call': ['callee', 'arguments'], 'FuncDclr': ['handle', 'parameters', 'body']}
+               'Call': ['callee', 'arguments'], 'FuncDclr': ['handle', 'parameters', 'body'],
+               'ReturnStmt': ['ret_val']}
 
 def write_line(file_name, line, indentation=0):
     for i in range(indentation):

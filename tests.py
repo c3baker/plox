@@ -191,6 +191,63 @@ class TestPrograms(unittest.TestCase):
         self.parser.parse(self.scanner.get_scanned_tokens())
         self.intr.interpret(self.parser.get_parsed_statements())
 
+    def test_function_declaration(self):
+        program = "fun hello_world()" \
+                  "{" \
+                  "    print \"Hello World!\";" \
+                  "}" \
+                  "" \
+                  "hello_world();"
+        self.scanner.scan(program)
+        self.parser.parse(self.scanner.get_scanned_tokens())
+        self.intr.interpret(self.parser.get_parsed_statements())
+
+    def test_functions_and_variables(self):
+        program = "var j = 0;" \
+                  "fun jot()" \
+                  "{" \
+                  "    var j = 1;" \
+                  "    print j;" \
+                  "    j = j + 1;" \
+                  "    print j;" \
+                  "}" \
+                  "" \
+                  "jot();" \
+                  "print j;"
+
+        self.scanner.scan(program)
+        self.parser.parse(self.scanner.get_scanned_tokens())
+        self.intr.interpret(self.parser.get_parsed_statements())
+
+    def test_fibonacci(self):
+        program = "fun fib(n)" \
+                  "{" \
+                  "   if (n == 1)" \
+                  "   {" \
+                  "       return 1;" \
+                  "   }" \
+                  "   if (n == 0)" \
+                  "   {" \
+                  "       return 0;" \
+                  "   }" \
+                  "   return fib(n - 1) + fib(n - 2);" \
+                  "}" \
+                  "" \
+                  "fun fib_seq(n)" \
+                  "{" \
+                  "   var i = 0;" \
+                  "   while (i < n)" \
+                  "   {" \
+                  "       print fib(i);" \
+                  "   }" \
+                  "}" \
+                  "" \
+                  "fib_seq(10);"
+
+        self.scanner.scan(program)
+        self.parser.parse(self.scanner.get_scanned_tokens())
+        self.intr.interpret(self.parser.get_parsed_statements())
+
 
 
 

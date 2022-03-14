@@ -12,6 +12,7 @@ Type_IfStmt = 10
 Type_WhileStmt = 11
 Type_Call = 12
 Type_FuncDclr = 13
+Type_ReturnStmt = 14
 
 
 class Binary:
@@ -78,9 +79,9 @@ class PrintStmt:
 
 
 class Dclr:
-    def __init__(self, identifier, expr):
+    def __init__(self, identifier, assign_expr):
         self.identifier = identifier
-        self.expr = expr
+        self.assign_expr = assign_expr
         self.type = Type_Dclr
 
     def accept(self, visitor): 
@@ -162,6 +163,16 @@ class FuncDclr:
 
     def accept(self, visitor): 
         val = visitor.visit_FuncDclr(self)
+        return val
+
+
+class ReturnStmt:
+    def __init__(self, ret_val):
+        self.ret_val = ret_val
+        self.type = Type_ReturnStmt
+
+    def accept(self, visitor): 
+        val = visitor.visit_ReturnStmt(self)
         return val
 
 
