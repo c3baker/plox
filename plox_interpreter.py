@@ -16,12 +16,12 @@ class PloxCallable:
             raise PloxRuntimeError("Function %s expects %d arguments but %d given." % (self.callable_name,
                                                                                        len(self.parameter_names),
                                                                                        len(args)))
-        interpreter.save_environment()
+        interpreter.enter_function_call()
         try:
             interpreter.execute_function_body(self.function_body, zip(self.parameter_names, args))
         except Return as ret:
             ret_val = ret.value
-        interpreter.restore_environment()
+        interpreter.exit_function_call()
         return ret_val
 
     def to_string(self):
@@ -32,15 +32,15 @@ class Environment:
 
     environment = None
 
-    def __init__(self):
+    def __init__(self, init_contexts=[]):
         if self.environment is None:
-            self.environment = self._Environment()
+            self.environment = self._Environment(init_contexts)
 
     def add(self, name, value):
         return self.environment.add(name, value)
 
     def assign(self, name, value):
-        return self.environment.assign_variable(name, value)
+        return self.environment.assign(name, value)
 
     def enter_block(self, zipped_params_args=[]):
         self.environment.enter_block(zipped_params_args)
@@ -49,21 +49,23 @@ class Environment:
         self.environment.pop_context()
 
     def get_value(self, name):
-        return self.environment.get_variable_value(name)
+        return self.environment.get_value(name)
 
     def get_global_variables(self):
-        return self.environment.get_global_variables()
+        return self.environment.get_global_context()
 
-    def save_environment(self):
+    def enter_function_call(self):
         self.environment.push_non_globals_to_stack()
 
-    def restore_environment(self):
-        self.environment.restore_stack()
+    def exit_function_call(self):
+        self.environment.restore_last_context()
 
     class _Environment:
-        def __init__(self):
-            self.contexts = []
-            self.stack = []
+        def __init__(self, init_contexts):
+            if not isinstance(init_contexts, list):
+                raise RuntimeError("Contexts must be stored in a list! Something is being passed wrong here!")
+            self.contexts = init_contexts
+            self.reserve_stack = []
             self.push_context()
 
         def push_context(self):
@@ -87,39 +89,51 @@ class Environment:
             self.contexts[-1][name] = value
             return True
 
-        def find_variable(self, name):
+        def find(self, name):
             c = None
             self.contexts.reverse()
             for context in self.contexts:
                 if name in context:
-                   c = context
-                   break
+                    c = context
+                    break
             self.contexts.reverse() # Put the list back to its original order
             return c
 
-        def assign_variable(self, name, value):
-            context = self.find_variable(name)
+        def assign(self, name, value):
+            context = self.find(name)
             if context is None:
                 return False
             context[name] = value
             return True
 
-        def get_variable_value(self, name):
-            context = self.find_variable(name)
+        def get_value(self, name):
+            context = self.find(name)
             if context is None:
                 raise Exception("Implicit declaration of variable %s." % name)
             return context[name]
 
-        def get_global_variables(self):
+        def get_non_global_contexts(self):
+            if len(self.contexts) < 2:
+                return []
+            return self.contexts[1:]
+
+        def get_global_context(self):
             return self.contexts[0]  # The first context in the stack is the global context
 
         def push_non_globals_to_stack(self):
-            while len(self.contexts) > 1:
-                self.stack.append(self.contexts.pop())
+            non_globals = self.get_non_global_contexts()
+            self.reserve_stack.append(non_globals)
+            # Remove the non-globals from the active environment
+            global_context = self.get_global_context()
+            self.contexts = []
+            self.contexts.append(global_context)
 
-        def restore_stack(self):
-            while len(self.stack) > 0:
-                self.contexts.append(self.stack.pop())
+
+        def restore_last_context(self):
+            if len(self.reserve_stack) > 0:
+                last_contexts = self.reserve_stack.pop()
+            self.contexts.extend(last_contexts)
+
 
 class PloxRuntimeError(utilties.PloxError):
     def __init__(self, message, line):
@@ -134,9 +148,13 @@ class Return(Exception):
         self.value = ret_value
 
 
-class Interpreter:
+class Break(Exception):
+    pass
 
+
+class Interpreter:
     interpreter = None
+
     def __init__(self, console_mode=False):
         if self.interpreter is None:
             self.interpreter = self._Interpreter(console_mode)
@@ -147,15 +165,17 @@ class Interpreter:
                 self.execute(stmt)
             except PloxRuntimeError as e:
                 utilties.report_error(e)
+            except Break:
+                raise PloxRuntimeError("Break must be called within a loop context.")
 
     def execute(self, stmt):
         self.interpreter.execute(stmt)
 
-    def save_environment(self):
-        return self.interpreter.environment.save_environment()
+    def enter_function_call(self):
+        return self.interpreter.environment.enter_function_call()
 
-    def restore_environment(self):
-        return self.interpreter.environment.restore_environment()
+    def exit_function_call(self):
+        return self.interpreter.environment.exit_function_call()
 
     def evaluation(self, expr):
         return self.interpreter.evaluate(expr)
@@ -170,11 +190,11 @@ class Interpreter:
             self._console_mode = console_mode
             self.environment = Environment()
 
-        def save_environment(self):
-            return self.environment.save_environment()
+        def enter_function_call(self):
+            return self.environment.enter_function_call()
 
-        def restore_environment(self):
-            return self.environment.restore_environment()
+        def exit_function_call(self):
+            return self.environment.exit_function_call()
 
         def execute_function_body(self, func_body_block, call_args):
             self.visit_Block(func_body_block, call_args)
@@ -229,9 +249,15 @@ class Interpreter:
 
         def visit_Block(self, block, func_call_args=[]):
             self.environment.enter_block(func_call_args)
+            excpt = None
             for stmt in block.stmts:
-                self.execute(stmt)
+                try:
+                    self.execute(stmt)
+                except Exception as e:  # Need to make sure we pop the environment stack before exiting
+                    excpt = e
             self.environment.exit_block()
+            if excpt is not None:
+                raise excpt
             return None
 
         def visit_IfStmt(self, ifstmt):

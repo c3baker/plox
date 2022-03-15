@@ -7,7 +7,7 @@ ast_defines = {'Binary': ['left_expr', 'operator', 'right_expr'],
                'Idnt': ['identifier'], 'Assign': ['left_side', 'right_side'], 'Block': ['stmts'],
                'IfStmt': ['expr', 'if_block', 'else_block'], 'WhileStmt':['expr', 'while_block'],
                'Call': ['callee', 'arguments'], 'FuncDclr': ['handle', 'parameters', 'body'],
-               'ReturnStmt': ['ret_val']}
+               'ReturnStmt': ['ret_val'], 'BrkStmt': []}
 
 def write_line(file_name, line, indentation=0):
     for i in range(indentation):

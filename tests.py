@@ -243,7 +243,7 @@ class TestPrograms(unittest.TestCase):
                   "   }" \
                   "}" \
                   "" \
-                  "fib_seq(3);"
+                  "fib_seq(20);"
 
         self.scanner.scan(program)
         self.parser.parse(self.scanner.get_scanned_tokens())

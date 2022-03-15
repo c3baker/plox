@@ -13,6 +13,7 @@ Type_WhileStmt = 11
 Type_Call = 12
 Type_FuncDclr = 13
 Type_ReturnStmt = 14
+Type_BrkStmt = 15
 
 
 class Binary:
@@ -173,6 +174,15 @@ class ReturnStmt:
 
     def accept(self, visitor): 
         val = visitor.visit_ReturnStmt(self)
+        return val
+
+
+class BrkStmt:
+    def __init__(self, ):
+        self.type = Type_BrkStmt
+
+    def accept(self, visitor): 
+        val = visitor.visit_BrkStmt(self)
         return val
 
 

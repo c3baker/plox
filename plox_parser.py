@@ -142,6 +142,8 @@ class Parser:
                 return self.statement_while()
             elif self.tokens.match([ps.KEYWORD_RETURN]):
                 return self.return_statement()
+            elif self.tokens.match([ps.KEYWORD_BREAK]):
+                return self.break_statement()
             else:
                 return self.statement_expression()
 
@@ -181,6 +183,11 @@ class Parser:
             if self.tokens.match([ps.SEMI_COLON]) is False:
                 raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
             return syntax_trees.PrintStmt(expr)
+
+        def statement_break(self):
+            if self.tokens.match([ps.SEMI_COLON]) is False:
+                raise PloxSyntaxError("Expected ; after break statement.", self.tokens.previous().line)
+            return syntax_trees.BrkStmt()
 
         def statement_expression(self):
             expr = self.expression()
