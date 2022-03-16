@@ -222,13 +222,13 @@ class TestPrograms(unittest.TestCase):
     def test_fibonacci(self):
         program = "fun fib(n)" \
                   "{" \
-                  "   if (n == 1)" \
-                  "   {" \
-                  "       return 1;" \
-                  "   }" \
-                  "   if (n == 0)" \
+                  "   if (n < 0)" \
                   "   {" \
                   "       return 0;" \
+                  "   }" \
+                  "   if (n <= 1)" \
+                  "   {" \
+                  "       return n;" \
                   "   }" \
                   "   return fib(n - 1) + fib(n - 2);" \
                   "}" \
@@ -243,7 +243,41 @@ class TestPrograms(unittest.TestCase):
                   "   }" \
                   "}" \
                   "" \
-                  "fib_seq(20);"
+                  "fib_seq(15);"
+
+        self.scanner.scan(program)
+        self.parser.parse(self.scanner.get_scanned_tokens())
+        self.intr.interpret(self.parser.get_parsed_statements())
+
+    def test_function_closures(self):
+        program = "var j = 0;" \
+                  "fun jot()" \
+                  "{" \
+                  "    fun inner(x, y)" \
+                  "    {" \
+                  "        print x;" \
+                  "        print y;" \
+                  "        if (x < 0)" \
+                  "        {" \
+                  "            return;" \
+                  "        }" \
+                  "        inner(x - 1 ,y - 1);" \
+                  "    }" \
+                  "    {" \
+                  "       inner(10, 11);" \
+                  "    }" \
+                  "}" \
+                  "" \
+                  "{" \
+                  "   {" \
+                  "     {" \
+                  "       {" \
+                  "            jot();" \
+                  "       }" \
+                  "     }" \
+                  "   }" \
+                  "}"
+
 
         self.scanner.scan(program)
         self.parser.parse(self.scanner.get_scanned_tokens())

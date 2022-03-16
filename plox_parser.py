@@ -124,6 +124,8 @@ class Parser:
             while not self.tokens.match([ps.CLOSE_PAREN]):
                 if self.tokens.peek() is None:
                     raise PloxSyntaxError("Reached EOF without finding closing \")\".", self.tokens.previous().line)
+                if len(parameters) > 0 and not self.tokens.match([ps.COMMA]):
+                    raise PloxSyntaxError("Expected , separator in parameter list")
                 param = self.expression()
                 if not isinstance(param, syntax_trees.Idnt):
                     raise PloxSyntaxError("Invalid parameter declaration.", self.tokens.previous().line)
@@ -148,6 +150,8 @@ class Parser:
                 return self.statement_expression()
 
         def return_statement(self):
+            if self.tokens.match([ps.SEMI_COLON]) is True:
+                return syntax_trees.ReturnStmt(None)
             ret_val = self.expression()
             if self.tokens.match([ps.SEMI_COLON]) is False:
                 raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
@@ -194,7 +198,7 @@ class Parser:
             # To allow for pure expressions to still be evaluated on the console
             # We will only enforce the ; on end of statement rule if the expression is an assignment or call
             if self.tokens.match([ps.SEMI_COLON]) is False and (isinstance(expr, syntax_trees.Assign) or
-                    isinstance(expr, syntax_trees.CallStmt)):
+                    isinstance(expr, syntax_trees.Call)):
                 raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
             return syntax_trees.ExprStmt(expr)
 
@@ -272,6 +276,8 @@ class Parser:
         def parse_function_call(self, callee):
             arguments = []
             while not self.tokens.match([ps.CLOSE_PAREN]):
+                if len(arguments) > 0 and not self.tokens.match([ps.COMMA]):
+                    raise PloxSyntaxError("Expected , separator in argument list")
                 if self.tokens.peek is None:
                     raise PloxSyntaxError("Expected matching \")\" for function call.")
                 arguments.append(self.expression())

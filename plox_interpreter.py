@@ -2,13 +2,15 @@ import plox_scanner as scanner
 import plox_syntax_trees as syntax_trees
 import plox_utilities as utilties
 
+GLOBAL = 1
 
 class PloxCallable:
 
-    def __init__(self, name, block_stmt, parameter_names=[]):
+    def __init__(self, name, block_stmt, parameter_names=[], context_level=GLOBAL):
         self.function_body = block_stmt
         self.parameter_names = parameter_names
         self.callable_name = name
+        self.env_context_level = context_level
 
     def __call__(self, interpreter, args=[]):
         ret_val = None
@@ -16,7 +18,7 @@ class PloxCallable:
             raise PloxRuntimeError("Function %s expects %d arguments but %d given." % (self.callable_name,
                                                                                        len(self.parameter_names),
                                                                                        len(args)))
-        interpreter.enter_function_call()
+        interpreter.enter_function_call(self.env_context_level)
         try:
             interpreter.execute_function_body(self.function_body, zip(self.parameter_names, args))
         except Return as ret:
@@ -54,11 +56,14 @@ class Environment:
     def get_global_variables(self):
         return self.environment.get_global_context()
 
-    def enter_function_call(self):
-        self.environment.push_non_globals_to_stack()
+    def enter_function_call(self, function_context_level=GLOBAL):
+        self.environment.enter_closure_context(function_context_level)
 
     def exit_function_call(self):
-        self.environment.restore_last_context()
+        self.environment.exit_closure_context()
+
+    def get_current_context_depth(self):
+        return self.environment.current_context_depth()
 
     class _Environment:
         def __init__(self, init_contexts):
@@ -72,7 +77,12 @@ class Environment:
             self.contexts.append({})
 
         def pop_context(self):
+            if len(self.contexts) == 0:
+                return
             self.contexts.pop()
+
+        def current_context_depth(self):
+            return len(self.contexts)
 
         def enter_block(self, zipped_params_args):
             self.push_context()
@@ -91,45 +101,47 @@ class Environment:
 
         def find(self, name):
             c = None
+            i = 0
             self.contexts.reverse()
             for context in self.contexts:
                 if name in context:
                     c = context
                     break
+                i += 1
             self.contexts.reverse() # Put the list back to its original order
-            return c
+            context_level = len(self.contexts) - i
+            return c, context_level
 
         def assign(self, name, value):
-            context = self.find(name)
+            context, _ = self.find(name)
             if context is None:
                 return False
             context[name] = value
             return True
 
         def get_value(self, name):
-            context = self.find(name)
+            context, _ = self.find(name)
             if context is None:
                 raise Exception("Implicit declaration of variable %s." % name)
             return context[name]
 
-        def get_non_global_contexts(self):
-            if len(self.contexts) < 2:
-                return []
-            return self.contexts[1:]
-
         def get_global_context(self):
             return self.contexts[0]  # The first context in the stack is the global context
 
-        def push_non_globals_to_stack(self):
-            non_globals = self.get_non_global_contexts()
-            self.reserve_stack.append(non_globals)
+        def enter_closure_context(self, context_level_limit):
+            if context_level_limit >= len(self.contexts):
+                return  # Do nothing
+            context_level_limit = GLOBAL if context_level_limit <= 0 else context_level_limit
+            contexts_to_reserve = self.contexts[context_level_limit:]
+            self.reserve_stack.append(contexts_to_reserve)
             # Remove the non-globals from the active environment
-            global_context = self.get_global_context()
+            closure_contexts = self.contexts[:context_level_limit]
             self.contexts = []
-            self.contexts.append(global_context)
+            self.contexts.extend(closure_contexts)
 
 
-        def restore_last_context(self):
+        def exit_closure_context(self):
+            last_contexts = []
             if len(self.reserve_stack) > 0:
                 last_contexts = self.reserve_stack.pop()
             self.contexts.extend(last_contexts)
@@ -171,8 +183,8 @@ class Interpreter:
     def execute(self, stmt):
         self.interpreter.execute(stmt)
 
-    def enter_function_call(self):
-        return self.interpreter.environment.enter_function_call()
+    def enter_function_call(self, context_level=GLOBAL):
+        return self.interpreter.environment.enter_function_call(context_level)
 
     def exit_function_call(self):
         return self.interpreter.environment.exit_function_call()
@@ -190,8 +202,8 @@ class Interpreter:
             self._console_mode = console_mode
             self.environment = Environment()
 
-        def enter_function_call(self):
-            return self.environment.enter_function_call()
+        def enter_function_call(self, context_level):
+            return self.environment.enter_function_call(context_level)
 
         def exit_function_call(self):
             return self.environment.exit_function_call()
@@ -232,7 +244,8 @@ class Interpreter:
         def visit_FuncDclr(self, f_dclr):
             func_name = f_dclr.handle.identifier.get_value()
             parameter_names = [x.identifier.get_value() for x in f_dclr.parameters]
-            function = PloxCallable(func_name, f_dclr.body, parameter_names)
+            function = PloxCallable(func_name, f_dclr.body, parameter_names,
+                                    self.environment.get_current_context_depth())
             if not self.environment.add(func_name, function):
                 raise PloxRuntimeError("Redefinition of %s\n" % func_name, f_dclr.handle.identifier.line)
 
@@ -250,11 +263,11 @@ class Interpreter:
         def visit_Block(self, block, func_call_args=[]):
             self.environment.enter_block(func_call_args)
             excpt = None
-            for stmt in block.stmts:
-                try:
+            try:
+                for stmt in block.stmts:
                     self.execute(stmt)
-                except Exception as e:  # Need to make sure we pop the environment stack before exiting
-                    excpt = e
+            except Exception as e:  # Need to make sure we pop the environment stack before exiting
+                excpt = e
             self.environment.exit_block()
             if excpt is not None:
                 raise excpt
@@ -373,6 +386,9 @@ class Interpreter:
             return function(self, [self.evaluate(x) for x in call.arguments])
 
         def visit_ReturnStmt(self, ret_stmt):
-            raise Return(self.evaluate(ret_stmt.ret_val))
+            ret_value = None
+            if ret_stmt.ret_val is not None:
+                ret_value = self.evaluate(ret_stmt.ret_val)
+            raise Return(ret_value)
 
 
