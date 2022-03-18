@@ -30,121 +30,95 @@ class PloxCallable:
         return "<fn " + self.name + ": " + len(self.parameter_names) + ">"
 
 
+@utilties.singleton
 class Environment:
-
-    environment = None
-
     def __init__(self, init_contexts=[]):
-        if self.environment is None:
-            self.environment = self._Environment(init_contexts)
+        if not isinstance(init_contexts, list):
+            raise RuntimeError("Contexts must be stored in a list! Something is being passed wrong here!")
+        self.contexts = init_contexts
+        self.reserve_stack = []
+        self.push_context()
 
-    def add(self, name, value):
-        return self.environment.add(name, value)
+    def push_context(self):
+        self.contexts.append({})
 
-    def assign(self, name, value):
-        return self.environment.assign(name, value)
+    def pop_context(self):
+        if len(self.contexts) == 0:
+            return
+        self.contexts.pop()
 
-    def enter_block(self, zipped_params_args=[]):
-        self.environment.enter_block(zipped_params_args)
+    def current_context_depth(self):
+        return len(self.contexts)
+
+    def enter_block(self, zipped_params_args):
+        self.push_context()
+        for param in zipped_params_args:
+            # If This is a function call we need
+            # To add the function arguments to the local environment
+            if len(param) > 0:
+                param_name, arg = param
+                self.add(param_name, arg)
 
     def exit_block(self):
-        self.environment.pop_context()
+        self.pop_context()
+
+    def add(self, name, value):
+        if name in self.contexts[-1]:
+            return False
+        self.contexts[-1][name] = value
+        return True
+
+    def find(self, name):
+        c = None
+        i = 0
+        self.contexts.reverse()
+        for context in self.contexts:
+            if name in context:
+                c = context
+                break
+            i += 1
+        self.contexts.reverse() # Put the list back to its original order
+        context_level = len(self.contexts) - i
+        return c, context_level
+
+    def assign(self, name, value):
+        context, _ = self.find(name)
+        if context is None:
+            return False
+        context[name] = value
+        return True
 
     def get_value(self, name):
-        return self.environment.get_value(name)
+        context, _ = self.find(name)
+        if context is None:
+            raise Exception("Implicit declaration of variable %s." % name)
+        return context[name]
 
-    def get_global_variables(self):
-        return self.environment.get_global_context()
+    def get_global_context(self):
+        return self.contexts[0]  # The first context in the stack is the global context
 
-    def enter_function_call(self, function_context_level=GLOBAL):
-        self.environment.enter_closure_context(function_context_level)
+    def enter_function_call(self, context_level_limit=[]):
+        self.enter_closure_context(context_level_limit)
 
     def exit_function_call(self):
-        self.environment.exit_closure_context()
+        self.exit_closure_context()
+        
+    def enter_closure_context(self, context_level_limit):
+        if context_level_limit >= len(self.contexts):
+            return  # Do nothing
+        context_level_limit = GLOBAL if context_level_limit <= 0 else context_level_limit
+        contexts_to_reserve = self.contexts[context_level_limit:]
+        self.reserve_stack.append(contexts_to_reserve)
+        # Remove the non-globals from the active environment
+        closure_contexts = self.contexts[:context_level_limit]
+        self.contexts = []
+        self.contexts.extend(closure_contexts)
 
-    def get_current_context_depth(self):
-        return self.environment.current_context_depth()
-
-    class _Environment:
-        def __init__(self, init_contexts):
-            if not isinstance(init_contexts, list):
-                raise RuntimeError("Contexts must be stored in a list! Something is being passed wrong here!")
-            self.contexts = init_contexts
-            self.reserve_stack = []
-            self.push_context()
-
-        def push_context(self):
-            self.contexts.append({})
-
-        def pop_context(self):
-            if len(self.contexts) == 0:
-                return
-            self.contexts.pop()
-
-        def current_context_depth(self):
-            return len(self.contexts)
-
-        def enter_block(self, zipped_params_args):
-            self.push_context()
-            for param in zipped_params_args:
-                # If This is a function call we need
-                # To add the function arguments to the local environment
-                if len(param) > 0:
-                    param_name, arg = param
-                    self.add(param_name, arg)
-
-        def add(self, name, value):
-            if name in self.contexts[-1]:
-                return False
-            self.contexts[-1][name] = value
-            return True
-
-        def find(self, name):
-            c = None
-            i = 0
-            self.contexts.reverse()
-            for context in self.contexts:
-                if name in context:
-                    c = context
-                    break
-                i += 1
-            self.contexts.reverse() # Put the list back to its original order
-            context_level = len(self.contexts) - i
-            return c, context_level
-
-        def assign(self, name, value):
-            context, _ = self.find(name)
-            if context is None:
-                return False
-            context[name] = value
-            return True
-
-        def get_value(self, name):
-            context, _ = self.find(name)
-            if context is None:
-                raise Exception("Implicit declaration of variable %s." % name)
-            return context[name]
-
-        def get_global_context(self):
-            return self.contexts[0]  # The first context in the stack is the global context
-
-        def enter_closure_context(self, context_level_limit):
-            if context_level_limit >= len(self.contexts):
-                return  # Do nothing
-            context_level_limit = GLOBAL if context_level_limit <= 0 else context_level_limit
-            contexts_to_reserve = self.contexts[context_level_limit:]
-            self.reserve_stack.append(contexts_to_reserve)
-            # Remove the non-globals from the active environment
-            closure_contexts = self.contexts[:context_level_limit]
-            self.contexts = []
-            self.contexts.extend(closure_contexts)
-
-
-        def exit_closure_context(self):
-            last_contexts = []
-            if len(self.reserve_stack) > 0:
-                last_contexts = self.reserve_stack.pop()
-            self.contexts.extend(last_contexts)
+    def exit_closure_context(self):
+        last_contexts = []
+        if len(self.reserve_stack) > 0:
+            last_contexts = self.reserve_stack.pop()
+        self.contexts.extend(last_contexts)
 
 
 class PloxRuntimeError(utilties.PloxError):
@@ -245,7 +219,7 @@ class Interpreter:
             func_name = f_dclr.handle.identifier.get_value()
             parameter_names = [x.identifier.get_value() for x in f_dclr.parameters]
             function = PloxCallable(func_name, f_dclr.body, parameter_names,
-                                    self.environment.get_current_context_depth())
+                                    self.environment.current_context_depth())
             if not self.environment.add(func_name, function):
                 raise PloxRuntimeError("Redefinition of %s\n" % func_name, f_dclr.handle.identifier.line)
 
