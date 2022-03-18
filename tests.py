@@ -3,6 +3,7 @@ import plox_scanner as lex
 import plox_parser as par
 import plox_interpreter as itr
 
+
 class ScannerTests(unittest.TestCase):
 
     program_1 = "if(x == true) " \
