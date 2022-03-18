@@ -102,7 +102,7 @@ class Environment:
 
     def exit_function_call(self):
         self.exit_closure_context()
-        
+
     def enter_closure_context(self, context_level_limit):
         if context_level_limit >= len(self.contexts):
             return  # Do nothing
@@ -137,13 +137,13 @@ class Return(Exception):
 class Break(Exception):
     pass
 
-
+@utilties.singleton
 class Interpreter:
-    interpreter = None
 
     def __init__(self, console_mode=False):
-        if self.interpreter is None:
-            self.interpreter = self._Interpreter(console_mode)
+        super().__init__()
+        self._console_mode = console_mode
+        self.environment = Environment()
 
     def interpret(self, statements):
         for stmt in statements:
@@ -154,215 +154,193 @@ class Interpreter:
             except Break:
                 raise PloxRuntimeError("Break must be called within a loop context.")
 
-    def execute(self, stmt):
-        self.interpreter.execute(stmt)
-
-    def enter_function_call(self, context_level=GLOBAL):
-        return self.interpreter.environment.enter_function_call(context_level)
+    def enter_function_call(self, context_level):
+        return self.environment.enter_function_call(context_level)
 
     def exit_function_call(self):
-        return self.interpreter.environment.exit_function_call()
+        return self.environment.exit_function_call()
 
-    def evaluation(self, expr):
-        return self.interpreter.evaluate(expr)
+    def execute_function_body(self, func_body_block, call_args):
+        self.visit_Block(func_body_block, call_args)
 
-    def is_true(self, result):
-        return self.interpreter.is_true(result)
+    def is_true(self, value):
+        if value is None:
+            return False
+        if value == 0.0:
+            return False
+        if value is False:
+            return False
+        return True
 
-    class _Interpreter:
+    def evaluate(self, expr):
+        return expr.accept(self)
 
-        def __init__(self, console_mode=False):
-            super().__init__()
-            self._console_mode = console_mode
-            self.environment = Environment()
+    def execute(self, stmt):
+        stmt.accept(self)
 
-        def enter_function_call(self, context_level):
-            return self.environment.enter_function_call(context_level)
+    def console_print(self, result):
+        print("    Result: ")
+        print("            " + str(result))
+        print("")
 
-        def exit_function_call(self):
-            return self.environment.exit_function_call()
+    def visit_Dclr(self, dclr):
+        value = None
+        var_name = dclr.identifier.identifier.get_value()
+        self.environment.add(var_name, None)
+        if dclr.assign_expr is not None:
+            value = self.evaluate(dclr.assign_expr)
+        if not self.environment.assign(var_name, value):
+            raise PloxRuntimeError("Redefinition of variable %s\n" % var_name, dclr.identifier.identifier.line)
+        return None
 
-        def execute_function_body(self, func_body_block, call_args):
-            self.visit_Block(func_body_block, call_args)
+    def visit_FuncDclr(self, f_dclr):
+        func_name = f_dclr.handle.identifier.get_value()
+        parameter_names = [x.identifier.get_value() for x in f_dclr.parameters]
+        function = PloxCallable(func_name, f_dclr.body, parameter_names,
+                                self.environment.current_context_depth())
+        if not self.environment.add(func_name, function):
+            raise PloxRuntimeError("Redefinition of %s\n" % func_name, f_dclr.handle.identifier.line)
 
-        def is_true(self, value):
-            if value is None:
-                return False
-            if value == 0.0:
-                return False
-            if value is False:
-                return False
-            return True
+    def visit_PrintStmt(self, printstmt):
+        expr_result = self.evaluate(printstmt.expr)
+        print(str(expr_result))
+        return None
 
-        def evaluate(self, expr):
-            return expr.accept(self)
+    def visit_ExprStmt(self, exprstmt):
+        expr_result = self.evaluate(exprstmt.expr)
+        if self._console_mode:
+            self.console_print(expr_result)
+        return None
 
-        def execute(self, stmt):
-            stmt.accept(self)
+    def visit_Block(self, block, func_call_args=[]):
+        self.environment.enter_block(func_call_args)
+        excpt = None
+        try:
+            for stmt in block.stmts:
+                self.execute(stmt)
+        except Exception as e:  # Need to make sure we pop the environment stack before exiting
+            excpt = e
+        self.environment.exit_block()
+        if excpt is not None:
+            raise excpt
+        return None
 
-        def console_print(self, result):
-            print("    Result: ")
-            print("            " + str(result))
-            print("")
+    def visit_IfStmt(self, ifstmt):
+        if_expr_result = self.is_true(self.evaluate(ifstmt.expr))
+        if if_expr_result is True:
+            self.execute(ifstmt.if_block)
+        elif ifstmt.else_block is not None:
+            self.execute(ifstmt.else_block)
+        return None
 
-        def visit_Dclr(self, dclr):
-            value = None
-            var_name = dclr.identifier.identifier.get_value()
-            self.environment.add(var_name, None)
-            if dclr.assign_expr is not None:
-                value = self.evaluate(dclr.assign_expr)
-            if not self.environment.assign(var_name, value):
-                raise PloxRuntimeError("Redefinition of variable %s\n" % var_name, dclr.identifier.identifier.line)
-            return None
-
-        def visit_FuncDclr(self, f_dclr):
-            func_name = f_dclr.handle.identifier.get_value()
-            parameter_names = [x.identifier.get_value() for x in f_dclr.parameters]
-            function = PloxCallable(func_name, f_dclr.body, parameter_names,
-                                    self.environment.current_context_depth())
-            if not self.environment.add(func_name, function):
-                raise PloxRuntimeError("Redefinition of %s\n" % func_name, f_dclr.handle.identifier.line)
-
-        def visit_PrintStmt(self, printstmt):
-            expr_result = self.evaluate(printstmt.expr)
-            print(str(expr_result))
-            return None
-
-        def visit_ExprStmt(self, exprstmt):
-            expr_result = self.evaluate(exprstmt.expr)
-            if self._console_mode:
-                self.console_print(expr_result)
-            return None
-
-        def visit_Block(self, block, func_call_args=[]):
-            self.environment.enter_block(func_call_args)
-            excpt = None
-            try:
-                for stmt in block.stmts:
-                    self.execute(stmt)
-            except Exception as e:  # Need to make sure we pop the environment stack before exiting
-                excpt = e
-            self.environment.exit_block()
-            if excpt is not None:
-                raise excpt
-            return None
-
-        def visit_IfStmt(self, ifstmt):
-            if_expr_result = self.is_true(self.evaluate(ifstmt.expr))
-            if if_expr_result is True:
-                self.execute(ifstmt.if_block)
-            elif ifstmt.else_block is not None:
-                self.execute(ifstmt.else_block)
-            return None
-
-        def visit_WhileStmt(self, whilestmt):
+    def visit_WhileStmt(self, whilestmt):
+        while_expr = self.is_true(self.evaluate(whilestmt.expr))
+        while while_expr:
+            self.execute(whilestmt.while_block)
             while_expr = self.is_true(self.evaluate(whilestmt.expr))
-            while while_expr:
-                self.execute(whilestmt.while_block)
-                while_expr = self.is_true(self.evaluate(whilestmt.expr))
 
-        def visit_Binary(self, binary):
-            left_result = binary.left_expr.accept(self)
-            right_result = binary.right_expr.accept(self)
+    def visit_Binary(self, binary):
+        left_result = binary.left_expr.accept(self)
+        right_result = binary.right_expr.accept(self)
 
-            operator = binary.operator.type
+        operator = binary.operator.type
 
-            if operator == scanner.ADD:
-                if isinstance(left_result, float) and isinstance(right_result, float):
-                    return left_result + right_result
-                elif isinstance(left_result, str) and isinstance(right_result, str):
-                    return left_result + right_result
-                else:
-                    raise PloxRuntimeError(" + Operator: Expected NUMBER or STRING", binary.operator.line)
-            elif operator == scanner.MINUS:
-                if isinstance(left_result, float) and isinstance(right_result, float):
-                    return left_result - right_result
-                else:
-                    raise PloxRuntimeError(" - Operator: Expected NUMBER", binary.operator.line)
-            elif operator == scanner.STAR:
-                if isinstance(left_result, float) and isinstance(right_result, float):
-                    return left_result * right_result
-                else:
-                    raise PloxRuntimeError(" * Operator: Expected NUMBER", binary.operator.line)
-            elif operator == scanner.DIV:
-                if isinstance(left_result, float) and isinstance(right_result, float):
-                    return left_result / right_result
-                else:
-                    raise PloxRuntimeError(" / Operator: Expected NUMBER", binary.operator.line)
-            elif operator == scanner.GREATER_THAN:
-                if isinstance(left_result, float) and isinstance(right_result, float):
-                    return left_result > right_result
-                else:
-                    raise PloxRuntimeError(" > Operator: Expected NUMBER", binary.operator.line)
-            elif operator == scanner.LESS_THAN:
-                if isinstance(left_result, float) and isinstance(right_result, float):
-                    return left_result < right_result
-                else:
-                    raise PloxRuntimeError(" < Operator: Expected NUMBER", binary.operator.line)
-            elif operator == scanner.LESS_THAN_EQUALS:
-                if isinstance(left_result, float) and isinstance(right_result, float):
-                    return left_result <= right_result
-                else:
-                    raise PloxRuntimeError(" <= Operator: Expected NUMBER", binary.operator.line)
-            elif operator == scanner.GREATER_THAN_EQUALS:
-                if isinstance(left_result, float) and isinstance(right_result, float):
-                    return left_result >= right_result
-                else:
-                    raise PloxRuntimeError(" >= Operator: Expected NUMBER", binary.operator.line)
-            elif operator == scanner.EQUALS:
-                return left_result == right_result
+        if operator == scanner.ADD:
+            if isinstance(left_result, float) and isinstance(right_result, float):
+                return left_result + right_result
+            elif isinstance(left_result, str) and isinstance(right_result, str):
+                return left_result + right_result
             else:
-                raise PloxRuntimeError(" " + binary.operator.literal + " unsupported operator", binary.operator.line)
+                raise PloxRuntimeError(" + Operator: Expected NUMBER or STRING", binary.operator.line)
+        elif operator == scanner.MINUS:
+            if isinstance(left_result, float) and isinstance(right_result, float):
+                return left_result - right_result
+            else:
+                raise PloxRuntimeError(" - Operator: Expected NUMBER", binary.operator.line)
+        elif operator == scanner.STAR:
+            if isinstance(left_result, float) and isinstance(right_result, float):
+                return left_result * right_result
+            else:
+                raise PloxRuntimeError(" * Operator: Expected NUMBER", binary.operator.line)
+        elif operator == scanner.DIV:
+            if isinstance(left_result, float) and isinstance(right_result, float):
+                return left_result / right_result
+            else:
+                raise PloxRuntimeError(" / Operator: Expected NUMBER", binary.operator.line)
+        elif operator == scanner.GREATER_THAN:
+            if isinstance(left_result, float) and isinstance(right_result, float):
+                return left_result > right_result
+            else:
+                raise PloxRuntimeError(" > Operator: Expected NUMBER", binary.operator.line)
+        elif operator == scanner.LESS_THAN:
+            if isinstance(left_result, float) and isinstance(right_result, float):
+                return left_result < right_result
+            else:
+                raise PloxRuntimeError(" < Operator: Expected NUMBER", binary.operator.line)
+        elif operator == scanner.LESS_THAN_EQUALS:
+            if isinstance(left_result, float) and isinstance(right_result, float):
+                return left_result <= right_result
+            else:
+                raise PloxRuntimeError(" <= Operator: Expected NUMBER", binary.operator.line)
+        elif operator == scanner.GREATER_THAN_EQUALS:
+            if isinstance(left_result, float) and isinstance(right_result, float):
+                return left_result >= right_result
+            else:
+                raise PloxRuntimeError(" >= Operator: Expected NUMBER", binary.operator.line)
+        elif operator == scanner.EQUALS:
+            return left_result == right_result
+        else:
+            raise PloxRuntimeError(" " + binary.operator.literal + " unsupported operator", binary.operator.line)
 
-        def visit_Grouping(self, grouping):
-            return grouping.expr.accept(self)
+    def visit_Grouping(self, grouping):
+        return grouping.expr.accept(self)
 
-        def visit_Literal(self, literal):
-            return literal.literal.get_value()
+    def visit_Literal(self, literal):
+        return literal.literal.get_value()
 
-        def visit_Idnt(self, idnt):
-            var_name = idnt.identifier.get_value()
-            try:
-                value = self.environment.get_value(var_name)
-            except Exception as e:
-                raise PloxRuntimeError("Implicit declaration of variable %s." % var_name, idnt.identifier.line)
-            return value
+    def visit_Idnt(self, idnt):
+        var_name = idnt.identifier.get_value()
+        try:
+            value = self.environment.get_value(var_name)
+        except Exception as e:
+            raise PloxRuntimeError("Implicit declaration of variable %s." % var_name, idnt.identifier.line)
+        return value
 
-        def visit_Unary(self, unary):
-            result = unary.expr.accept(self)
-            operator = unary.operator.type
+    def visit_Unary(self, unary):
+        result = unary.expr.accept(self)
+        operator = unary.operator.type
 
-            if operator == scanner.BANG:
-                bool_result = self.is_true(result)
-                return not bool_result
+        if operator == scanner.BANG:
+            bool_result = self.is_true(result)
+            return not bool_result
 
-            elif operator == scanner.MINUS:
-                if not isinstance(result, float):
-                    raise PloxRuntimeError(" Negation expects NUMBER", unary.operator.line)
-                return -result
+        elif operator == scanner.MINUS:
+            if not isinstance(result, float):
+                raise PloxRuntimeError(" Negation expects NUMBER", unary.operator.line)
+            return -result
 
-        def visit_Assign(self, assign):
-            var_name = assign.left_side.identifier.get_value() # Get the identifier name
-            assign_value = self.evaluate(assign.right_side)
-            if not self.environment.assign(var_name, assign_value):
-                raise PloxRuntimeError("Implicit declaration of variable %s." % var_name, assign.left_side.identifier.line)
-            return assign_value
+    def visit_Assign(self, assign):
+        var_name = assign.left_side.identifier.get_value() # Get the identifier name
+        assign_value = self.evaluate(assign.right_side)
+        if not self.environment.assign(var_name, assign_value):
+            raise PloxRuntimeError("Implicit declaration of variable %s." % var_name, assign.left_side.identifier.line)
+        return assign_value
 
-        def visit_Call(self, call):
-            callee_name = call.callee.identifier.get_value()
-            try:
-                function = self.evaluate(call.callee)
-            except Exception:
-                raise PloxRuntimeError("Implicit declaration of function %s." % callee_name, call.callee.identifier.line)
-            if not callable(function):
-                raise PloxRuntimeError("Attempting to call a non-callable object %s." % callee_name,
-                                       call.callee.identifier.line)
-            return function(self, [self.evaluate(x) for x in call.arguments])
+    def visit_Call(self, call):
+        callee_name = call.callee.identifier.get_value()
+        try:
+            function = self.evaluate(call.callee)
+        except Exception:
+            raise PloxRuntimeError("Implicit declaration of function %s." % callee_name, call.callee.identifier.line)
+        if not callable(function):
+            raise PloxRuntimeError("Attempting to call a non-callable object %s." % callee_name,
+                                   call.callee.identifier.line)
+        return function(self, [self.evaluate(x) for x in call.arguments])
 
-        def visit_ReturnStmt(self, ret_stmt):
-            ret_value = None
-            if ret_stmt.ret_val is not None:
-                ret_value = self.evaluate(ret_stmt.ret_val)
-            raise Return(ret_value)
+    def visit_ReturnStmt(self, ret_stmt):
+        ret_value = None
+        if ret_stmt.ret_val is not None:
+            ret_value = self.evaluate(ret_stmt.ret_val)
+        raise Return(ret_value)
 
 
