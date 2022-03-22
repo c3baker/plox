@@ -15,6 +15,14 @@ class Resolver:
             return
         self.scopes.pop()
 
+    def resolve_stmts(self, statements):
+        for stmt in statements:
+            self.resolve(stmt)
+
+    def resolve_exprs(self, expressions):
+        for expr in expressions:
+            self.resolve(expr)
+
     def resolve(self, syntax):
         syntax.accept(self)
 
@@ -31,8 +39,17 @@ class Resolver:
     def resolve_local(self, expr, name):
         scopes_depth = len(self.scopes)
         for i in range(scopes_depth):
-            if name in self.scopes[scopes_depth - i]:
+            if name in self.scopes[scopes_depth - (i + 1)]:
                 self.resolve(expr)
+
+    def visit_Block(self, blk):
+        self.push_scope()
+        self.resolve_stmts(blk.stmts)
+        self.pop_scope()
+
+    def visit_Dclr(self, dclr):
+        pass
+
 
 
 

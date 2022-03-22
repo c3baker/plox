@@ -80,8 +80,8 @@ class PrintStmt:
 
 
 class Dclr:
-    def __init__(self, identifier, assign_expr):
-        self.identifier = identifier
+    def __init__(self, var_name, assign_expr):
+        self.var_name = var_name
         self.assign_expr = assign_expr
         self.type = Type_Dclr
 
@@ -101,8 +101,8 @@ class Idnt:
 
 
 class Assign:
-    def __init__(self, left_side, right_side):
-        self.left_side = left_side
+    def __init__(self, var_name, right_side):
+        self.var_name = var_name
         self.right_side = right_side
         self.type = Type_Assign
 

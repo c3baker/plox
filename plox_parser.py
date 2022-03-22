@@ -104,15 +104,15 @@ class Parser:
         def var_declaration_statement(self):
             expr = self.expression()
             if isinstance(expr, syntax_trees.Idnt):
-                ident = expr
+                var_name = expr.identifier.get_value()
                 expr = None
             elif isinstance(expr, syntax_trees.Assign):
-                ident = expr.left_side
+                var_name = expr.var_name
             else:
                 raise PloxSyntaxError("Expected identifier in variable declaration.", self.tokens.previous().line)
             if not self.tokens.match([ps.SEMI_COLON]):
                 raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
-            return syntax_trees.Dclr(ident, expr)
+            return syntax_trees.Dclr(var_name, expr)
 
         def func_declaration_statement(self):
             handle = self.primary()  # Expect function name
@@ -218,7 +218,7 @@ class Parser:
             if self.tokens.match([ps.ASSIGN]):
                 if isinstance(expr, syntax_trees.Idnt):
                     assignment = self.equality()
-                    return syntax_trees.Assign(expr, assignment)
+                    return syntax_trees.Assign(expr.identifier.get_value(), assignment)
                 raise PloxSyntaxError("Assignment target wrong type.", self.tokens.previous().line)
             return expr
 

@@ -185,7 +185,7 @@ class Interpreter:
 
     def visit_Dclr(self, dclr):
         value = None
-        var_name = dclr.identifier.identifier.get_value()
+        var_name = dclr.var_name
         self.environment.add(var_name, None)
         if dclr.assign_expr is not None:
             value = self.evaluate(dclr.assign_expr)
@@ -320,10 +320,10 @@ class Interpreter:
             return -result
 
     def visit_Assign(self, assign):
-        var_name = assign.left_side.identifier.get_value() # Get the identifier name
         assign_value = self.evaluate(assign.right_side)
-        if not self.environment.assign(var_name, assign_value):
-            raise PloxRuntimeError("Implicit declaration of variable %s." % var_name, assign.left_side.identifier.line)
+        if not self.environment.assign(assign.var_name, assign_value):
+            raise PloxRuntimeError("Implicit declaration of variable %s." % assign.var_name,
+                                   assign.left_side.identifier.line)
         return assign_value
 
     def visit_Call(self, call):

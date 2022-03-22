@@ -3,8 +3,8 @@ import sys
 
 ast_defines = {'Binary': ['left_expr', 'operator', 'right_expr'],
                'Grouping': ['expr'], 'Literal': ['literal'], 'Unary': ['operator', 'expr'],
-               'ExprStmt': ['expr'], 'PrintStmt': ['expr'], 'Dclr': ['identifier', 'assign_expr'],
-               'Idnt': ['identifier'], 'Assign': ['left_side', 'right_side'], 'Block': ['stmts'],
+               'ExprStmt': ['expr'], 'PrintStmt': ['expr'], 'Dclr': ['var_name', 'assign_expr'],
+               'Idnt': ['identifier'], 'Assign': ['var_name', 'right_side'], 'Block': ['stmts'],
                'IfStmt': ['expr', 'if_block', 'else_block'], 'WhileStmt':['expr', 'while_block'],
                'Call': ['callee', 'arguments'], 'FuncDclr': ['handle', 'parameters', 'body'],
                'ReturnStmt': ['ret_val'], 'BrkStmt': []}
