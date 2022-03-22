@@ -194,12 +194,10 @@ class Interpreter:
         return None
 
     def visit_FuncDclr(self, f_dclr):
-        func_name = f_dclr.handle.identifier.get_value()
-        parameter_names = [x.identifier.get_value() for x in f_dclr.parameters]
-        function = PloxCallable(func_name, f_dclr.body, parameter_names,
-                                self.environment.current_context_depth())
-        if not self.environment.add(func_name, function):
-            raise PloxRuntimeError("Redefinition of %s\n" % func_name, f_dclr.handle.identifier.line)
+        function = PloxCallable( f_dclr.handle, f_dclr.body, f_dclr.parameters,
+                                 self.environment.current_context_depth())
+        if not self.environment.add(f_dclr.handle, function):
+            raise PloxRuntimeError("Redefinition of %s\n" % f_dclr.handle, f_dclr.line)
 
     def visit_PrintStmt(self, printstmt):
         expr_result = self.evaluate(printstmt.expr)
@@ -323,7 +321,7 @@ class Interpreter:
         assign_value = self.evaluate(assign.right_side)
         if not self.environment.assign(assign.var_name, assign_value):
             raise PloxRuntimeError("Implicit declaration of variable %s." % assign.var_name,
-                                   assign.left_side.identifier.line)
+                                   assign.line)
         return assign_value
 
     def visit_Call(self, call):

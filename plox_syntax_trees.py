@@ -80,9 +80,10 @@ class PrintStmt:
 
 
 class Dclr:
-    def __init__(self, var_name, assign_expr):
+    def __init__(self, var_name, assign_expr, line):
         self.var_name = var_name
         self.assign_expr = assign_expr
+        self.line = line
         self.type = Type_Dclr
 
     def accept(self, visitor): 
@@ -101,9 +102,10 @@ class Idnt:
 
 
 class Assign:
-    def __init__(self, var_name, right_side):
+    def __init__(self, var_name, right_side, line):
         self.var_name = var_name
         self.right_side = right_side
+        self.line = line
         self.type = Type_Assign
 
     def accept(self, visitor): 
@@ -156,10 +158,11 @@ class Call:
 
 
 class FuncDclr:
-    def __init__(self, handle, parameters, body):
+    def __init__(self, handle, parameters, body, line):
         self.handle = handle
         self.parameters = parameters
         self.body = body
+        self.line = line
         self.type = Type_FuncDclr
 
     def accept(self, visitor): 

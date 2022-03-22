@@ -112,7 +112,7 @@ class Parser:
                 raise PloxSyntaxError("Expected identifier in variable declaration.", self.tokens.previous().line)
             if not self.tokens.match([ps.SEMI_COLON]):
                 raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
-            return syntax_trees.Dclr(var_name, expr)
+            return syntax_trees.Dclr(var_name, expr, self.tokens.previous().line)
 
         def func_declaration_statement(self):
             handle = self.primary()  # Expect function name
@@ -129,11 +129,11 @@ class Parser:
                 param = self.expression()
                 if not isinstance(param, syntax_trees.Idnt):
                     raise PloxSyntaxError("Invalid parameter declaration.", self.tokens.previous().line)
-                parameters.append(param)
+                parameters.append(param.identifier.get_value())
             body = self.declaration()
             if not isinstance(body, syntax_trees.Block):
                 raise PloxSyntaxError("Expected function body definition.", self.tokens.previous().line)
-            return syntax_trees.FuncDclr(handle, parameters, body)
+            return syntax_trees.FuncDclr(handle.identifier.get_value(), parameters, body, self.tokens.previous().line)
 
         def statement(self):
             if self.tokens.match([ps.KEYWORD_PRINT]):
@@ -218,7 +218,7 @@ class Parser:
             if self.tokens.match([ps.ASSIGN]):
                 if isinstance(expr, syntax_trees.Idnt):
                     assignment = self.equality()
-                    return syntax_trees.Assign(expr.identifier.get_value(), assignment)
+                    return syntax_trees.Assign(expr.identifier.get_value(), assignment, self.tokens.previous().line)
                 raise PloxSyntaxError("Assignment target wrong type.", self.tokens.previous().line)
             return expr
 
