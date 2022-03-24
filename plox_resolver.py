@@ -48,7 +48,7 @@ class Resolver:
         scopes_depth = len(self.scopes)
         for i in range(scopes_depth):
             if name in self.scopes[scopes_depth - (i + 1)]:
-                self.resolve(expr)
+                Interpreter.resolve_local(expr, scopes_depth - (i + 1))
 
     def visit_Block(self, blk, function_params=[]):
         self.push_scope()
@@ -60,12 +60,13 @@ class Resolver:
 
     def visit_Dclr(self, dclr):
         self.declare(dclr.var_name)
-        self.resolve(dclr.assign_expr)
+        if dclr.assign_expr is not None:
+            self.resolve(dclr.assign_expr)
         self.define(dclr.var_name)
 
     def visit_Assign(self, assign):
         self.resolve(assign.right_side)
-        self.resolve_local(assign.var_name, assign.right_side)
+        self.resolve_local(assign, assign.var_name)
 
     def visit_FuncDclr(self, fdclr):
         self.declare(fdclr.handle)
@@ -99,6 +100,7 @@ class Resolver:
         if (len(self.scopes)) > 0 and ((idnt_name in self.get_current_scope()) and
                                        (self.get_current_scope()[idnt_name] is False)):
             raise PloxRuntimeError("Can't read local variable in its own initializer.", idnt.identifier.line)
+        self.resolve_local(idnt, idnt_name)
 
     def visit_IfStmt(self, ifstmt):
         self.resolve(ifstmt.expr)
@@ -111,6 +113,11 @@ class Resolver:
 
     def visit_ReturnStmt(self, rtrn):
         self.resolve(rtrn.ret_val)
+
+    def visit_Call(self, call):
+        self.resolve(call.callee)
+        for arg in call.arguments:
+            self.resolve(arg)
 
 
 

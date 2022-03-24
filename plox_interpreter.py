@@ -32,11 +32,14 @@ class PloxCallable:
 
 @utilties.singleton
 class Environment:
+    resolved_locals = {}
+    reserve_stack = []
+
     def __init__(self, init_contexts=[]):
         if not isinstance(init_contexts, list):
             raise RuntimeError("Contexts must be stored in a list! Something is being passed wrong here!")
         self.contexts = init_contexts
-        self.reserve_stack = []
+
         self.push_context()
 
     def push_context(self):
@@ -62,6 +65,9 @@ class Environment:
     def exit_block(self):
         self.pop_context()
 
+    def resolve_local(self, expr, scope_depth):
+        self.resolved_locals[expr] = scope_depth
+
     def add(self, name, value):
         if name in self.contexts[-1]:
             return False
@@ -81,18 +87,34 @@ class Environment:
         context_level = len(self.contexts) - i
         return c, context_level
 
-    def assign(self, name, value):
-        context, _ = self.find(name)
-        if context is None:
+    def get_at(self, context_level, name):
+        if len(self.contexts) <= context_level:
+            return None
+        if not name in self.contexts[context_level]:
+            return None
+        return self.contexts[context_level][name]
+
+    def set_at(self, context_level, name, value):
+        if len(self.contexts) <= context_level:
             return False
-        context[name] = value
+        if name not in self.contexts[context_level]:
+            return False
+        self.contexts[context_level][name] = value
         return True
 
-    def get_value(self, name):
-        context, _ = self.find(name)
-        if context is None:
-            raise Exception("Implicit declaration of variable %s." % name)
-        return context[name]
+    def assign(self, assign_expr, value):
+        if not isinstance(assign_expr, syntax_trees.Assign):
+            return False
+        if assign_expr not in self.resolved_locals:
+            return False
+        return self.set_at(self.resolved_locals[assign_expr], assign_expr.var_name, value)
+
+    def get_value(self, ident_expr):
+        if not isinstance(ident_expr, syntax_trees.Idnt):
+            return None
+        if ident_expr not in self.resolved_locals:
+            return False
+        return self.get_at(self.resolved_locals[ident_expr], ident_expr.identifier.get_value())
 
     def get_global_context(self):
         return self.contexts[0]  # The first context in the stack is the global context
@@ -139,11 +161,11 @@ class Break(Exception):
 
 @utilties.singleton
 class Interpreter:
+    environment = Environment()
 
     def __init__(self, console_mode=False):
         super().__init__()
         self._console_mode = console_mode
-        self.environment = Environment()
 
     def interpret(self, statements):
         for stmt in statements:
@@ -153,6 +175,9 @@ class Interpreter:
                 utilties.report_error(e)
             except Break:
                 raise PloxRuntimeError("Break must be called within a loop context.")
+
+    def resolve_local(self, expr, scope_level):
+        self.environment.resolve_local(expr, scope_level)
 
     def enter_function_call(self, context_level):
         return self.environment.enter_function_call(context_level)
