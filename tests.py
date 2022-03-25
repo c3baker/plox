@@ -2,6 +2,7 @@ import unittest
 import plox_scanner as lex
 import plox_parser as par
 import plox_interpreter as itr
+from plox import *
 
 
 class ScannerTests(unittest.TestCase):
@@ -216,9 +217,7 @@ class TestPrograms(unittest.TestCase):
                   "jot();" \
                   "print j;"
 
-        self.scanner.scan(program)
-        self.parser.parse(self.scanner.get_scanned_tokens())
-        self.intr.interpret(self.parser.get_parsed_statements())
+        run_program(program)
 
     def test_fibonacci(self):
         program = "fun fib(n)" \

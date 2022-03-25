@@ -32,7 +32,7 @@ class PloxCallable:
 
 @utilties.singleton
 class Environment:
-    resolved_locals = {}
+    resolved_identifiers = {}
     reserve_stack = []
 
     def __init__(self, init_contexts=[]):
@@ -65,8 +65,8 @@ class Environment:
     def exit_block(self):
         self.pop_context()
 
-    def resolve_local(self, expr, scope_depth):
-        self.resolved_locals[expr] = scope_depth
+    def resolve_identifier(self, expr, scope_depth):
+        self.resolved_identifiers[expr] = scope_depth
 
     def add(self, name, value):
         if name in self.contexts[-1]:
@@ -105,16 +105,16 @@ class Environment:
     def assign(self, assign_expr, value):
         if not isinstance(assign_expr, syntax_trees.Assign):
             return False
-        if assign_expr not in self.resolved_locals:
+        if assign_expr not in self.resolved_identifiers:
             return False
-        return self.set_at(self.resolved_locals[assign_expr], assign_expr.var_name, value)
+        return self.set_at(self.resolved_identifiers[assign_expr], assign_expr.var_name, value)
 
     def get_value(self, ident_expr):
         if not isinstance(ident_expr, syntax_trees.Idnt):
             return None
-        if ident_expr not in self.resolved_locals:
+        if ident_expr not in self.resolved_identifiers:
             return False
-        return self.get_at(self.resolved_locals[ident_expr], ident_expr.identifier.get_value())
+        return self.get_at(self.resolved_identifiers[ident_expr], ident_expr.identifier.get_value())
 
     def get_global_context(self):
         return self.contexts[0]  # The first context in the stack is the global context
@@ -176,8 +176,8 @@ class Interpreter:
             except Break:
                 raise PloxRuntimeError("Break must be called within a loop context.")
 
-    def resolve_local(self, expr, scope_level):
-        self.environment.resolve_local(expr, scope_level)
+    def resolve_identifier(self, expr, scope_level):
+        self.environment.resolve_identifier(expr, scope_level)
 
     def enter_function_call(self, context_level):
         return self.environment.enter_function_call(context_level)
@@ -322,11 +322,11 @@ class Interpreter:
         return literal.literal.get_value()
 
     def visit_Idnt(self, idnt):
-        var_name = idnt.identifier.get_value()
         try:
-            value = self.environment.get_value(var_name)
+            value = self.environment.get_value(idnt)
         except Exception as e:
-            raise PloxRuntimeError("Implicit declaration of variable %s." % var_name, idnt.identifier.line)
+            raise PloxRuntimeError("Implicit declaration of variable %s." % idnt.identifier.get_value(),
+                                   idnt.identifier.line)
         return value
 
     def visit_Unary(self, unary):

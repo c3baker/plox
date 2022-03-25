@@ -94,137 +94,135 @@ class Token:
     def get_value(self):
         return self.literal
 
+
+@utilities.singleton
 class Scanner:
-    scanner = None
+    source = None
+    start = 0
+    current = 0
 
-    class _Scanner:
-        source = None
-        start = 0
-        current = 0
-
-        simple_token_lookup = {'(': OPEN_PAREN, ')': CLOSE_PAREN, '{': OPEN_BRACE, '}': CLOSE_BRACE,
-                               '+': ADD, '-': MINUS, '*': STAR, ';': SEMI_COLON, ',': COMMA, '/': DIV,
-                               '"': STRING, "!": BANG, ">": GREATER_THAN, "<": LESS_THAN, "=": ASSIGN}
-        keyword_lookup = {'or': KEYWORD_OR, 'and': KEYWORD_AND, 'class': KEYWORD_CLASS, 'if': KEYWORD_IF,
-                          'else': KEYWORD_ELSE, 'true': KEYWORD_TRUE, 'false': KEYWORD_FALSE,
-                          'while': KEYWORD_WHILE, 'for': KEYWORD_FOR, 'return': KEYWORD_RETURN,
-                          'var': KEYWORD_VAR, 'fun': KEYWORD_FUN, 'print': KEYWORD_PRINT, 'nil': KEYWORD_NIL,
-                          'break': KEYWORD_BREAK}
-        compound_symbols = {DIV: [COMMENT, '/'], LESS_THAN: [LESS_THAN_EQUALS, '='],
-                            GREATER_THAN: [GREATER_THAN_EQUALS, '='], ASSIGN: [EQUALS, '='],
-                            BANG: [NOT_EQUALS, '=']}
-
-        def __init__(self):
-            self._init_members()
-
-        def _init_members(self):
-            self.line = 0
-            self.start = 0
-            self.current = 0
-            self.tokens = []
-
-        def raise_lexical_error(self, message):
-            raise LexicalError(message)
-
-        def set_source(self, source):
-            self._init_members(source)
-
-        def get_tokens(self):
-            return self.tokens
-
-        def add_token(self, token_type):
-            current_string = self.source.source_current_string()
-            if token_type == KEYWORD_TRUE:
-                literal = True
-            elif token_type == KEYWORD_FALSE:
-                literal = False
-            else:
-                literal = float(current_string) if token_type == NUMBER else current_string
-            self.tokens.append(Token(token_type, literal, self.source.get_current_line()))
-
-        def is_valid_numeric_symbol(self, symbol):
-            return True if symbol is not None and (symbol.isnumeric() or symbol == '.') else False
-
-        def read_numeric_symbol(self):
-            floating_point = False
-            while self.is_valid_numeric_symbol(self.source.peek()):
-                c = self.source.advance()
-                if c == '.' and floating_point:
-                    self.raise_lexical_error("Lexical Error: Too many decimal points in numeric.")
-                elif c == '.':
-                    floating_point = True
-            self.add_token(NUMBER)
-
-        def is_valid_name_or_keyword_symbol(self, symbol):
-            return False if symbol is None or (symbol != '_' and not symbol.isalnum()) else True
-
-        def read_alpha_symbol(self):
-            while self.is_valid_name_or_keyword_symbol(self.source.peek()):
-                self.source.advance()
-
-            symbol = self.source.source_current_string()
-            token_id = IDENTIFIER if symbol not in self.keyword_lookup.keys() else self.keyword_lookup[symbol]
-            self.add_token(token_id) # Token is an identifier
-
-        def could_be_compound_symbol(self, token_id):
-            return True if token_id in self.compound_symbols.keys() else False
-
-        def scan_string(self):
-            if self.source.seek('"') is None:
-                self.raise_lexical_error("Lexical Error: Reached EOF without closing \" ")
-            self.add_token(STRING)
-
-        def scan_comment(self):
-            # Comments are just ignored. Scan until the next new line
-            self.source.seek("\n")
-
-        def scan_simple_symbol(self, token_id):
-            if self.could_be_compound_symbol(token_id):
-                match = self.compound_symbols[token_id]
-                if self.source.match(match[1]):
-                    self.add_token(match[0])
-                else:
-                    self.add_token(token_id)
-            elif token_id == STRING:
-                self.scan_string()
-            elif token_id == COMMENT:
-                self.scan_comment()
-            else:
-                self.add_token(token_id)
-
-        def scan(self, source):
-            self._init_members()
-            self.source = SourceIterator(source)
-            while not self.source.peek() is None:
-                c = self.source.advance()
-                self.source.start_next_token()
-                if c is None:
-                    return
-                if c.isalpha():
-                    self.read_alpha_symbol()
-                elif c.isnumeric():
-                    self.read_numeric_symbol()
-                else:
-                    token_id = None if c not in self.simple_token_lookup.keys() else self.simple_token_lookup[c]
-                    if token_id is None:
-                        self.raise_lexical_error("Lexical Error: Unrecognized symbol %c." % c)
-                    else:
-                        self.scan_simple_symbol(token_id)
+    simple_token_lookup = {'(': OPEN_PAREN, ')': CLOSE_PAREN, '{': OPEN_BRACE, '}': CLOSE_BRACE,
+                           '+': ADD, '-': MINUS, '*': STAR, ';': SEMI_COLON, ',': COMMA, '/': DIV,
+                           '"': STRING, "!": BANG, ">": GREATER_THAN, "<": LESS_THAN, "=": ASSIGN}
+    keyword_lookup = {'or': KEYWORD_OR, 'and': KEYWORD_AND, 'class': KEYWORD_CLASS, 'if': KEYWORD_IF,
+                      'else': KEYWORD_ELSE, 'true': KEYWORD_TRUE, 'false': KEYWORD_FALSE,
+                      'while': KEYWORD_WHILE, 'for': KEYWORD_FOR, 'return': KEYWORD_RETURN,
+                      'var': KEYWORD_VAR, 'fun': KEYWORD_FUN, 'print': KEYWORD_PRINT, 'nil': KEYWORD_NIL,
+                      'break': KEYWORD_BREAK}
+    compound_symbols = {DIV: [COMMENT, '/'], LESS_THAN: [LESS_THAN_EQUALS, '='],
+                        GREATER_THAN: [GREATER_THAN_EQUALS, '='], ASSIGN: [EQUALS, '='],
+                        BANG: [NOT_EQUALS, '=']}
 
     def __init__(self):
-        if not self.scanner:
-            self.scanner = self._Scanner()
+        self._init_members()
 
-    def get_scanner(self):
-        return self.scanner
+    def _init_members(self):
+        self.line = 0
+        self.start = 0
+        self.current = 0
+        self.tokens = []
+        self.has_error = False
 
-    def get_scanned_tokens(self):
-        return self.scanner.get_tokens()
+    def error_occurred(self):
+        return self.has_error
+
+    def raise_lexical_error(self, line, message):
+        raise LexicalError(line, message)
 
     def scan(self, source):
-        if not isinstance(source, str):
-            raise Exception("Scanner expects string input for scanning!")
-        self.scanner.scan(source)
+        self.has_error = False
+        try:
+            if not isinstance(source, str):
+                self.raise_lexical_error(0, "Plox expected text program")
+            self._scan(source)
+        except LexicalError as e:
+            utilities.report_error(e)
+            self.has_error = True
+
+    def set_source(self, source):
+        self._init_members(source)
+
+    def get_scanned_tokens(self):
+        return self.tokens
+
+    def add_token(self, token_type):
+        current_string = self.source.source_current_string()
+        if token_type == KEYWORD_TRUE:
+            literal = True
+        elif token_type == KEYWORD_FALSE:
+            literal = False
+        else:
+            literal = float(current_string) if token_type == NUMBER else current_string
+        self.tokens.append(Token(token_type, literal, self.source.get_current_line()))
+
+    def is_valid_numeric_symbol(self, symbol):
+        return True if symbol is not None and (symbol.isnumeric() or symbol == '.') else False
+
+    def read_numeric_symbol(self):
+        floating_point = False
+        while self.is_valid_numeric_symbol(self.source.peek()):
+            c = self.source.advance()
+            if c == '.' and floating_point:
+                self.raise_lexical_error("Lexical Error: Too many decimal points in numeric.")
+            elif c == '.':
+                floating_point = True
+        self.add_token(NUMBER)
+
+    def is_valid_name_or_keyword_symbol(self, symbol):
+        return False if symbol is None or (symbol != '_' and not symbol.isalnum()) else True
+
+    def read_alpha_symbol(self):
+        while self.is_valid_name_or_keyword_symbol(self.source.peek()):
+            self.source.advance()
+
+        symbol = self.source.source_current_string()
+        token_id = IDENTIFIER if symbol not in self.keyword_lookup.keys() else self.keyword_lookup[symbol]
+        self.add_token(token_id) # Token is an identifier
+
+    def could_be_compound_symbol(self, token_id):
+        return True if token_id in self.compound_symbols.keys() else False
+
+    def scan_string(self):
+        if self.source.seek('"') is None:
+            self.raise_lexical_error("Lexical Error: Reached EOF without closing \" ")
+        self.add_token(STRING)
+
+    def scan_comment(self):
+        # Comments are just ignored. Scan until the next new line
+        self.source.seek("\n")
+
+    def scan_simple_symbol(self, token_id):
+        if self.could_be_compound_symbol(token_id):
+            match = self.compound_symbols[token_id]
+            if self.source.match(match[1]):
+                self.add_token(match[0])
+            else:
+                self.add_token(token_id)
+        elif token_id == STRING:
+            self.scan_string()
+        elif token_id == COMMENT:
+            self.scan_comment()
+        else:
+            self.add_token(token_id)
+
+    def _scan(self, source):
+        self._init_members()
+        self.source = SourceIterator(source)
+        while not self.source.peek() is None:
+            c = self.source.advance()
+            self.source.start_next_token()
+            if c is None:
+                return
+            if c.isalpha():
+                self.read_alpha_symbol()
+            elif c.isnumeric():
+                self.read_numeric_symbol()
+            else:
+                token_id = None if c not in self.simple_token_lookup.keys() else self.simple_token_lookup[c]
+                if token_id is None:
+                    self.raise_lexical_error("Lexical Error: Unrecognized symbol %c." % c)
+                else:
+                    self.scan_simple_symbol(token_id)
 
 
 
