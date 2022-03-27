@@ -62,7 +62,7 @@ class Resolver:
             return
         for i in range(scopes_depth + 1):
             if name in self.scopes[scopes_depth - (i + 1)]:
-                self.interpreter.resolve_identifier(expr, scopes_depth - (1 - i))
+                self.interpreter.resolve_identifier(expr, scopes_depth - (i + 1))
                 break
 
     def visit_Block(self, blk, function_params=[]):
@@ -81,6 +81,7 @@ class Resolver:
 
     def visit_Assign(self, assign):
         self._resolve(assign.right_side)
+        self.resolve_identifier(assign, assign.var_name)
 
     def visit_FuncDclr(self, fdclr):
         self.declare(fdclr.handle)

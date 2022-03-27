@@ -244,10 +244,7 @@ class TestPrograms(unittest.TestCase):
                   "}" \
                   "" \
                   "fib_seq(15);"
-
-        self.scanner.scan(program)
-        self.parser.parse(self.scanner.get_scanned_tokens())
-        self.intr.interpret(self.parser.get_parsed_statements())
+        run_program(program)
 
     def test_function_closures(self):
         program = "var j = 0;" \
@@ -278,10 +275,9 @@ class TestPrograms(unittest.TestCase):
                   "   }" \
                   "}"
 
+        run_program(program)
 
-        self.scanner.scan(program)
-        self.parser.parse(self.scanner.get_scanned_tokens())
-        self.intr.interpret(self.parser.get_parsed_statements())
+
 
 
 

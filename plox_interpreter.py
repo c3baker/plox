@@ -88,32 +88,19 @@ class Environment:
         return c, context_level
 
     def get_at(self, context_level, name):
-        if len(self.contexts) <= context_level:
-            return None
-        if not name in self.contexts[context_level]:
-            return None
         return self.contexts[context_level][name]
 
     def set_at(self, context_level, name, value):
-        if len(self.contexts) <= context_level:
-            return False
-        if name not in self.contexts[context_level]:
-            return False
         self.contexts[context_level][name] = value
-        return True
 
     def assign(self, assign_expr, value):
         if not isinstance(assign_expr, syntax_trees.Assign):
-            return False
-        if assign_expr not in self.resolved_identifiers:
-            return False
+            raise Exception("Expected Assignment Expression")
         return self.set_at(self.resolved_identifiers[assign_expr], assign_expr.var_name, value)
 
     def get_value(self, ident_expr):
         if not isinstance(ident_expr, syntax_trees.Idnt):
             return None
-        if ident_expr not in self.resolved_identifiers:
-            return False
         return self.get_at(self.resolved_identifiers[ident_expr], ident_expr.identifier.get_value())
 
     def get_global_context(self):
@@ -214,8 +201,10 @@ class Interpreter:
         self.environment.add(var_name, None)
         if dclr.assign_expr is not None:
             value = self.evaluate(dclr.assign_expr)
-        if not self.environment.assign(var_name, value):
-            raise PloxRuntimeError("Redefinition of variable %s\n" % var_name, dclr.identifier.identifier.line)
+            try:
+                self.environment.assign(dclr.assign_expr, value)
+            except Exception:
+                raise PloxRuntimeError("Redefinition of variable %s\n" % var_name, dclr.identifier.identifier.line)
         return None
 
     def visit_FuncDclr(self, f_dclr):
@@ -344,7 +333,9 @@ class Interpreter:
 
     def visit_Assign(self, assign):
         assign_value = self.evaluate(assign.right_side)
-        if not self.environment.assign(assign.var_name, assign_value):
+        try:
+            self.environment.assign(assign, self.evaluate(assign.right_side))
+        except Exception as e:
             raise PloxRuntimeError("Implicit declaration of variable %s." % assign.var_name,
                                    assign.line)
         return assign_value
