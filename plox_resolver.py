@@ -10,6 +10,8 @@ class Resolver:
         self.scopes = [{}]
         self.has_error = False
         self.interpreter = None
+        self.loop_depth = 0
+        self.func_depth = 0
 
     def push_scope(self):
         self.scopes.append({})
@@ -26,6 +28,9 @@ class Resolver:
         self.interpreter = interpreter
         self.has_error = False
         self.scopes = [{}]
+        self.loop_depth = 0
+        self.func_depth = 0
+
         try:
             self.resolve_statements(syntaxes)
         except PloxRuntimeError as e:
@@ -124,7 +129,9 @@ class Resolver:
 
     def visit_WhileStmt(self, whilestmt):
         self._resolve(whilestmt.expr)
+        self.loop_depth += 1
         self._resolve(whilestmt.while_block)
+        self.loop_depth -= 1
 
     def visit_ReturnStmt(self, rtrn):
         self._resolve(rtrn.ret_val)
@@ -133,6 +140,10 @@ class Resolver:
         self._resolve(call.callee)
         for arg in call.arguments:
             self._resolve(arg)
+
+    def visit_BrkStmt(self, bstmt):
+        if self.loop_depth == 0:
+            raise PloxRuntimeError("Illegal break from non-loop context", bstmt.line)
 
 
 

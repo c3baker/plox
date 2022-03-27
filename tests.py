@@ -277,6 +277,41 @@ class TestPrograms(unittest.TestCase):
 
         run_program(program)
 
+    def test_break(self):
+        program = "var i = 0;" \
+                  "while(true)" \
+                  "{" \
+                  "    i = i + 1;" \
+                  "    print i;" \
+                  "    if(i > 5)" \
+                  "    {" \
+                  "        break;" \
+                  "    }" \
+                  "}" \
+                  "" \
+                  "print \"Done\";"
+
+        run_program(program)
+
+    def test_scoping(self):
+        program = "var x = \"global\";" \
+                  "{" \
+                  "    fun f()" \
+                  "    {" \
+                  "        print x;" \
+                  "    }" \
+                  "    f();" \
+                  "    var x = \"local\";" \
+                  "    f();" \
+                  "    fun g()" \
+                  "    {" \
+                  "        print x;" \
+                  "    }" \
+                  "    g();" \
+                  "}"
+
+        run_program(program)
+
 
 
 

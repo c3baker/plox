@@ -171,8 +171,9 @@ class FuncDclr:
 
 
 class ReturnStmt:
-    def __init__(self, ret_val):
+    def __init__(self, ret_val, line):
         self.ret_val = ret_val
+        self.line = line
         self.type = Type_ReturnStmt
 
     def accept(self, visitor): 
@@ -181,7 +182,8 @@ class ReturnStmt:
 
 
 class BrkStmt:
-    def __init__(self, ):
+    def __init__(self, line):
+        self.line = line
         self.type = Type_BrkStmt
 
     def accept(self, visitor): 

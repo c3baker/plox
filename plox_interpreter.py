@@ -248,7 +248,10 @@ class Interpreter:
     def visit_WhileStmt(self, whilestmt):
         while_expr = self.is_true(self.evaluate(whilestmt.expr))
         while while_expr:
-            self.execute(whilestmt.while_block)
+            try:
+                self.execute(whilestmt.while_block)
+            except Break:
+                return
             while_expr = self.is_true(self.evaluate(whilestmt.expr))
 
     def visit_Binary(self, binary):
@@ -356,5 +359,10 @@ class Interpreter:
         if ret_stmt.ret_val is not None:
             ret_value = self.evaluate(ret_stmt.ret_val)
         raise Return(ret_value)
+
+    def visit_BrkStmt(self, brk):
+        raise Break()
+
+
 
 
