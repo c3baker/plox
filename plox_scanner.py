@@ -39,6 +39,7 @@ BANG = 35
 NUMBER = 36
 KEYWORD_NIL = 37
 KEYWORD_BREAK = 38
+DOT = 39
 
 class SourceIterator(utilities.PloxIterator):
     def __init__(self, source):
@@ -103,7 +104,7 @@ class Scanner:
 
     simple_token_lookup = {'(': OPEN_PAREN, ')': CLOSE_PAREN, '{': OPEN_BRACE, '}': CLOSE_BRACE,
                            '+': ADD, '-': MINUS, '*': STAR, ';': SEMI_COLON, ',': COMMA, '/': DIV,
-                           '"': STRING, "!": BANG, ">": GREATER_THAN, "<": LESS_THAN, "=": ASSIGN}
+                           '"': STRING, "!": BANG, ">": GREATER_THAN, "<": LESS_THAN, "=": ASSIGN, ".": DOT}
     keyword_lookup = {'or': KEYWORD_OR, 'and': KEYWORD_AND, 'class': KEYWORD_CLASS, 'if': KEYWORD_IF,
                       'else': KEYWORD_ELSE, 'true': KEYWORD_TRUE, 'false': KEYWORD_FALSE,
                       'while': KEYWORD_WHILE, 'for': KEYWORD_FOR, 'return': KEYWORD_RETURN,

@@ -93,6 +93,10 @@ class Resolver:
         self.define(fdclr.handle)
         self.resolve_function(fdclr)
 
+    def visit_ClassDclr(self, cldclr):
+        self.declare(cldclr.class_name)
+        self.define(cldclr.class_name)
+
     def resolve_function(self, function):
         self.visit_Block(function.body, function.parameters)
 

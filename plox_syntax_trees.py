@@ -14,6 +14,9 @@ Type_Call = 12
 Type_FuncDclr = 13
 Type_ReturnStmt = 14
 Type_BrkStmt = 15
+Type_ClassDclr = 16
+Type_Get = 17
+Type_Set = 18
 
 
 class Binary:
@@ -147,9 +150,10 @@ class WhileStmt:
 
 
 class Call:
-    def __init__(self, callee, arguments):
+    def __init__(self, callee, arguments, line):
         self.callee = callee
         self.arguments = arguments
+        self.line = line
         self.type = Type_Call
 
     def accept(self, visitor): 
@@ -188,6 +192,42 @@ class BrkStmt:
 
     def accept(self, visitor): 
         val = visitor.visit_BrkStmt(self)
+        return val
+
+
+class ClassDclr:
+    def __init__(self, class_name, methods, line):
+        self.class_name = class_name
+        self.methods = methods
+        self.line = line
+        self.type = Type_ClassDclr
+
+    def accept(self, visitor): 
+        val = visitor.visit_ClassDclr(self)
+        return val
+
+
+class Get:
+    def __init__(self, object, field_name, line):
+        self.object = object
+        self.field_name = field_name
+        self.line = line
+        self.type = Type_Get
+
+    def accept(self, visitor): 
+        val = visitor.visit_Get(self)
+        return val
+
+
+class Set:
+    def __init__(self, object, field_name, line):
+        self.object = object
+        self.field_name = field_name
+        self.line = line
+        self.type = Type_Set
+
+    def accept(self, visitor): 
+        val = visitor.visit_Set(self)
         return val
 
 

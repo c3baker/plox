@@ -4,7 +4,22 @@ import plox_utilities as utilties
 
 GLOBAL = 1
 
-class PloxCallable:
+
+class PloxClass:
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, interpreter, args=[]):
+        instance = PloxInstance(self)
+        return instance
+
+
+class PloxInstance:
+    def __init__(self, cls):
+        self.class_type = cls
+
+
+class PloxFunction:
 
     def __init__(self, name, block_stmt, parameter_names=[], context_level=GLOBAL):
         self.function_body = block_stmt
@@ -70,9 +85,8 @@ class Environment:
 
     def add(self, name, value):
         if name in self.contexts[-1]:
-            return False
+            raise PloxRuntimeError("Redeclaration of variable %s" % name)
         self.contexts[-1][name] = value
-        return True
 
     def find(self, name):
         c = None
@@ -131,7 +145,7 @@ class Environment:
 
 
 class PloxRuntimeError(utilties.PloxError):
-    def __init__(self, message, line):
+    def __init__(self, message, line=0):
         super().__init__(line, message)
 
     def get_error_message(self):
@@ -198,20 +212,32 @@ class Interpreter:
     def visit_Dclr(self, dclr):
         value = None
         var_name = dclr.var_name
-        self.environment.add(var_name, None)
+        try:
+            self.environment.add(var_name, None)
+        except PloxRuntimeError as e:
+            raise PloxRuntimeError(e.message, dclr.line)
         if dclr.assign_expr is not None:
             value = self.evaluate(dclr.assign_expr)
             try:
                 self.environment.assign(dclr.assign_expr, value)
             except Exception:
-                raise PloxRuntimeError("Redefinition of variable %s\n" % var_name, dclr.identifier.identifier.line)
+                raise PloxRuntimeError("Redefinition of variable %s\n" % var_name, dclr.line)
         return None
 
     def visit_FuncDclr(self, f_dclr):
-        function = PloxCallable( f_dclr.handle, f_dclr.body, f_dclr.parameters,
-                                 self.environment.current_context_depth())
-        if not self.environment.add(f_dclr.handle, function):
-            raise PloxRuntimeError("Redefinition of %s\n" % f_dclr.handle, f_dclr.line)
+        function = PloxFunction(f_dclr.handle, f_dclr.body, f_dclr.parameters,
+                                self.environment.current_context_depth())
+        try:
+            self.environment.add(f_dclr.handle, function)
+        except PloxRuntimeError as e:
+            raise PloxRuntimeError(e.message, f_dclr.line)
+
+    def visit_ClassDclr(self, clsdclr):
+        new_class = PloxClass(clsdclr.class_name)
+        try:
+            self.environment.add(clsdclr.class_name, new_class)
+        except PloxRuntimeError as e:
+            raise PloxRuntimeError(e.message, clsdclr.line)
 
     def visit_PrintStmt(self, printstmt):
         expr_result = self.evaluate(printstmt.expr)
@@ -344,14 +370,13 @@ class Interpreter:
         return assign_value
 
     def visit_Call(self, call):
-        callee_name = call.callee.identifier.get_value()
         try:
             function = self.evaluate(call.callee)
         except Exception:
-            raise PloxRuntimeError("Implicit declaration of function %s." % callee_name, call.callee.identifier.line)
+            raise PloxRuntimeError("Implicit declaration of function %s." % str(call.callee),
+                                   call.line)
         if not callable(function):
-            raise PloxRuntimeError("Attempting to call a non-callable object %s." % callee_name,
-                                   call.callee.identifier.line)
+            raise PloxRuntimeError("Attempting to call a non-callable object .", call.callee.identifier.line)
         return function(self, [self.evaluate(x) for x in call.arguments])
 
     def visit_ReturnStmt(self, ret_stmt):

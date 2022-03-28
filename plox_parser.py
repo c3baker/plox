@@ -100,6 +100,8 @@ class Parser:
                 return self.func_declaration_statement()
             if self.tokens.match([ps.OPEN_BRACE]):
                 return self.block()
+            if self.tokens.match([ps.KEYWORD_CLASS]):
+                return self.class_declaration_statement()
             return self.statement()
         except PloxSyntaxError as e:
             utilities.report_error(e)
@@ -139,6 +141,25 @@ class Parser:
         if not isinstance(body, syntax_trees.Block):
             raise PloxSyntaxError("Expected function body definition.", self.tokens.previous().line)
         return syntax_trees.FuncDclr(handle.identifier.get_value(), parameters, body, self.tokens.previous().line)
+
+    def class_declaration_statement(self):
+        class_name = self.expression()
+        declaration_line = self.tokens.previous().line
+        if not isinstance(class_name, syntax_trees.Idnt):
+            raise PloxSyntaxError("Expected class declaration.", self.tokens.previous().line)
+        if not self.tokens.match([ps.OPEN_BRACE]):
+            raise PloxSyntaxError("Expected \"{\" in class declaration.", self.tokens.previous().line)
+
+        methods = []
+        while not self.tokens.match([ps.CLOSE_BRACE]):
+            if self.tokens.list_end():
+                raise PloxSyntaxError("Reached EOF without finding closing \"}\".", self.tokens.previous().line)
+            method = self.declaration()
+            if not isinstance(method, syntax_trees.FuncDclr):
+                raise PloxSyntaxError("Expected class method declaration.", self.tokens.previous().line)
+            methods.append(method)
+
+        return syntax_trees.ClassDclr(class_name.identifier.get_value(), methods, declaration_line)
 
     def statement(self):
         if self.tokens.match([ps.KEYWORD_PRINT]):
@@ -273,9 +294,18 @@ class Parser:
         or x()()() with callee x()() which itself is a call with callee
         x() which itself is a call with callee x... and so on
         the call must be parsed somewhat recursively
+        Alternatively a call could be accessing a class method
+        object.something.something_else.another_thing.function(); or
+        object.get_another_object().run_function_1().this_thing.another_thing.get_value();
         '''
-        while self.tokens.match([ps.OPEN_PAREN]):
-            callee = self.parse_function_call(callee)
+        while self.tokens.match([ps.OPEN_PAREN, ps.DOT]):
+            if self.tokens.previous() == ps.DOT:
+                identifier = self.primary()
+                if not isinstance(identifier, syntax_trees.Idnt):
+                    raise PloxSyntaxError("Expected method or property.", self.tokens.previous().line)
+                callee = syntax_trees.Get(callee, identifier.identifier.get_value(), self.tokens.previous().line)
+            else:
+                callee = self.parse_function_call(callee)
         return callee
 
     def parse_function_call(self, callee):
@@ -286,7 +316,7 @@ class Parser:
             if self.tokens.peek is None:
                 raise PloxSyntaxError("Expected matching \")\" for function call.")
             arguments.append(self.expression())
-        return syntax_trees.Call(callee, arguments)
+        return syntax_trees.Call(callee, arguments, self.tokens.previous().line)
 
     def primary(self):
         token = self.tokens.advance()

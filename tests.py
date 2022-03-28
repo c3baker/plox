@@ -219,6 +219,27 @@ class TestPrograms(unittest.TestCase):
 
         run_program(program)
 
+    def test_multi_depth_call(self):
+        program = "fun f()" \
+                  "{" \
+                  "    fun g()" \
+                  "    {" \
+                  "        fun h()" \
+                  "        {" \
+                  "            fun q()" \
+                  "            {" \
+                  "                print \"Q!\";" \
+                  "                return 1.0;" \
+                  "            }" \
+                  "            return q;" \
+                  "        }" \
+                  "        return h;" \
+                  "     }" \
+                  "     return g;" \
+                  "}" \
+                  "" \
+                  "var x = f()()()();"
+        run_program(program)
     def test_fibonacci(self):
         program = "fun fib(n)" \
                   "{" \
@@ -310,6 +331,11 @@ class TestPrograms(unittest.TestCase):
                   "    g();" \
                   "}"
 
+        run_program(program)
+
+    def test_declare_class_and_create_object(self):
+        program = "class simple{}" \
+                  "var object = simple();"
         run_program(program)
 
 
