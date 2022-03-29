@@ -65,9 +65,14 @@ class Resolver:
         scopes_depth = len(self.scopes)
         if scopes_depth == 0:
             return
-        for i in range(scopes_depth + 1):
+        '''
+        Look back "up" the context stack to see in which context
+        the matching identifier is declared. 0 means the declaration is in
+        the same context as the usage, 1 means the previous context, etc. 
+        '''
+        for i in range(scopes_depth):
             if name in self.scopes[scopes_depth - (i + 1)]:
-                self.interpreter.resolve_identifier(expr, scopes_depth - (i + 1))
+                self.interpreter.resolve_identifier(expr, i)
                 break
 
     def visit_Block(self, blk, function_params=[]):
@@ -148,6 +153,14 @@ class Resolver:
     def visit_BrkStmt(self, bstmt):
         if self.loop_depth == 0:
             raise PloxRuntimeError("Illegal break from non-loop context", bstmt.line)
+
+    def visit_Get(self, get):
+        self._resolve(get.object)
+
+    def visit_Set(self, set):
+        self._resolve(set.right_side)
+        self.resolve(set.object)
+
 
 
 

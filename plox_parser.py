@@ -242,9 +242,11 @@ class Parser:
     def assignment(self):
         expr = self.equality()
         if self.tokens.match([ps.ASSIGN]):
-            if isinstance(expr, syntax_trees.Idnt):
-                assignment = self.equality()
+            assignment = self.equality()
+            if isinstance(expr, syntax_trees.Idnt):  # Normal assignment
                 return syntax_trees.Assign(expr.identifier.get_value(), assignment, self.tokens.previous().line)
+            if isinstance(expr, syntax_trees.Get):  # Class setter
+                return syntax_trees.Set(expr.object, expr.field_name, assignment, self.tokens.previous().line)
             raise PloxSyntaxError("Assignment target wrong type.", self.tokens.previous().line)
         return expr
 

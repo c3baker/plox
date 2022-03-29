@@ -13,10 +13,24 @@ class PloxClass:
         instance = PloxInstance(self)
         return instance
 
+    def __str__(self):
+        return self.name
+
 
 class PloxInstance:
     def __init__(self, cls):
         self.class_type = cls
+        self.fields = {}
+
+    def __str__(self):
+        return str(self.class_type())
+
+    def get(self, field_name):
+        return self.fields[field_name]
+
+    def set(self, field_name, value):
+        self.fields[field_name] = value
+
 
 
 class PloxFunction:
@@ -102,10 +116,12 @@ class Environment:
         return c, context_level
 
     def get_at(self, context_level, name):
-        return self.contexts[context_level][name]
+        abs_context_level = len(self.contexts) - context_level - 1
+        return self.contexts[abs_context_level][name]
 
     def set_at(self, context_level, name, value):
-        self.contexts[context_level][name] = value
+        abs_context_level = len(self.contexts) - context_level - 1
+        self.contexts[abs_context_level][name] = value
 
     def assign(self, assign_expr, value):
         if not isinstance(assign_expr, syntax_trees.Assign):
@@ -363,7 +379,7 @@ class Interpreter:
     def visit_Assign(self, assign):
         assign_value = self.evaluate(assign.right_side)
         try:
-            self.environment.assign(assign, self.evaluate(assign.right_side))
+            self.environment.assign(assign, assign_value)
         except Exception as e:
             raise PloxRuntimeError("Implicit declaration of variable %s." % assign.var_name,
                                    assign.line)
@@ -378,6 +394,30 @@ class Interpreter:
         if not callable(function):
             raise PloxRuntimeError("Attempting to call a non-callable object .", call.callee.identifier.line)
         return function(self, [self.evaluate(x) for x in call.arguments])
+
+    def visit_Get(self, get):
+        try:
+            object = self.evaluate(get.object)
+        except Exception:
+            raise PloxRuntimeError("Accessing unknown object", get.line)
+        if not isinstance(object, PloxInstance):
+            raise PloxRuntimeError("Accessing something other than an object", get.line)
+        try:
+            return object.get(get.field_name)
+        except Exception:
+            raise PloxRuntimeError("Class %s has no such field %s" % (str(object),
+                                                                      get.field_name), get.line)
+
+    def visit_Set(self, set):
+        set_value = self.evaluate(set.right_side)
+        try:
+            object = self.evaluate(set.object)
+        except Exception:
+            raise PloxRuntimeError("Attempting to set unknown object", set.line)
+        if not isinstance(object, PloxInstance):
+            raise PloxRuntimeError("Accessing something other than an object", set.line)
+        object.set(set.field_name, set_value)
+        
 
     def visit_ReturnStmt(self, ret_stmt):
         ret_value = None

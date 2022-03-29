@@ -220,9 +220,10 @@ class Get:
 
 
 class Set:
-    def __init__(self, object, field_name, line):
+    def __init__(self, object, field_name, right_side, line):
         self.object = object
         self.field_name = field_name
+        self.right_side = right_side
         self.line = line
         self.type = Type_Set
 

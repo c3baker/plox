@@ -189,9 +189,7 @@ class TestPrograms(unittest.TestCase):
                   "    print i;" \
                   "    i = i - 1;" \
                   "}"
-        self.scanner.scan(program)
-        self.parser.parse(self.scanner.get_scanned_tokens())
-        self.intr.interpret(self.parser.get_parsed_statements())
+        run_program(program)
 
     def test_function_declaration(self):
         program = "fun hello_world()" \
@@ -200,9 +198,7 @@ class TestPrograms(unittest.TestCase):
                   "}" \
                   "" \
                   "hello_world();"
-        self.scanner.scan(program)
-        self.parser.parse(self.scanner.get_scanned_tokens())
-        self.intr.interpret(self.parser.get_parsed_statements())
+        run_program(program)
 
     def test_functions_and_variables(self):
         program = "var j = 0;" \
@@ -238,7 +234,10 @@ class TestPrograms(unittest.TestCase):
                   "     return g;" \
                   "}" \
                   "" \
-                  "var x = f()()()();"
+                  "var x = f()()();" \
+                  "var y = x();" \
+                  "print y;" \
+
         run_program(program)
     def test_fibonacci(self):
         program = "fun fib(n)" \
@@ -337,6 +336,7 @@ class TestPrograms(unittest.TestCase):
         program = "class simple{}" \
                   "var object = simple();"
         run_program(program)
+
 
 
 
