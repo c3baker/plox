@@ -100,6 +100,8 @@ class Resolver:
 
     def visit_ClassDclr(self, cldclr):
         self.declare(cldclr.class_name)
+        for method in cldclr.methods:
+            self.resolve_function(method)
         self.define(cldclr.class_name)
 
     def resolve_function(self, function):

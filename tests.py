@@ -337,6 +337,22 @@ class TestPrograms(unittest.TestCase):
                   "var object = simple();"
         run_program(program)
 
+    def test_class_methods_basic(self):
+        program = "class Bakery" \
+                  "{" \
+                  "    fun bake()" \
+                  "    {" \
+                  "        print \"Bread\"; " \
+                  "    }" \
+                  "}" \
+                  "" \
+                  "var b = Bakery();" \
+                  "b.bake();" \
+                  "print \"Done\";"
+        run_program(program)
+
+
+
 
 
 

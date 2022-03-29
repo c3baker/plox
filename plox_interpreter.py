@@ -6,8 +6,9 @@ GLOBAL = 1
 
 
 class PloxClass:
-    def __init__(self, name):
+    def __init__(self, name, methods):
         self.name = name
+        self.methods = methods
 
     def __call__(self, interpreter, args=[]):
         instance = PloxInstance(self)
@@ -15,6 +16,9 @@ class PloxClass:
 
     def __str__(self):
         return self.name
+
+    def get_method(self, method_name):
+        return self.methods[method_name]
 
 
 class PloxInstance:
@@ -26,7 +30,9 @@ class PloxInstance:
         return str(self.class_type())
 
     def get(self, field_name):
-        return self.fields[field_name]
+        if field_name in self.fields:
+            return self.fields[field_name]
+        return self.class_type.get_method(field_name)
 
     def set(self, field_name, value):
         self.fields[field_name] = value
@@ -249,7 +255,13 @@ class Interpreter:
             raise PloxRuntimeError(e.message, f_dclr.line)
 
     def visit_ClassDclr(self, clsdclr):
-        new_class = PloxClass(clsdclr.class_name)
+        methods = {}
+        for method in clsdclr.methods:
+            class_method = PloxFunction(method.handle, method.body, method.parameters,
+                                        self.environment.current_context_depth())
+            methods[method.handle] = class_method
+
+        new_class = PloxClass(clsdclr.class_name, methods)
         try:
             self.environment.add(clsdclr.class_name, new_class)
         except PloxRuntimeError as e:

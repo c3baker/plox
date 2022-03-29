@@ -49,6 +49,14 @@ class TokenIterator(utilities.PloxIterator):
             return True
         return False
 
+    def match_previous(self, match_list):
+        token = self.previous()
+        if token is None:
+            return False
+        if token.type in match_list:
+            return True
+        return False
+
 
 class PloxSyntaxError(utilities.PloxError):
     def __init__(self, message, line):
@@ -93,20 +101,16 @@ class Parser:
         return self.statements
 
     def declaration(self):
-        try:
-            if self.tokens.match([ps.KEYWORD_VAR]):
-                return self.var_declaration_statement()
-            if self.tokens.match([ps.KEYWORD_FUN]):
-                return self.func_declaration_statement()
-            if self.tokens.match([ps.OPEN_BRACE]):
-                return self.block()
-            if self.tokens.match([ps.KEYWORD_CLASS]):
-                return self.class_declaration_statement()
-            return self.statement()
-        except PloxSyntaxError as e:
-            utilities.report_error(e)
-            self.syntax_error = True
-        return None
+        if self.tokens.match([ps.KEYWORD_VAR]):
+            return self.var_declaration_statement()
+        if self.tokens.match([ps.KEYWORD_FUN]):
+            return self.func_declaration_statement()
+        if self.tokens.match([ps.OPEN_BRACE]):
+            return self.block()
+        if self.tokens.match([ps.KEYWORD_CLASS]):
+            return self.class_declaration_statement()
+        return self.statement()
+
 
     def var_declaration_statement(self):
         expr = self.expression()
@@ -301,7 +305,7 @@ class Parser:
         object.get_another_object().run_function_1().this_thing.another_thing.get_value();
         '''
         while self.tokens.match([ps.OPEN_PAREN, ps.DOT]):
-            if self.tokens.previous() == ps.DOT:
+            if self.tokens.match_previous([ps.DOT]):
                 identifier = self.primary()
                 if not isinstance(identifier, syntax_trees.Idnt):
                     raise PloxSyntaxError("Expected method or property.", self.tokens.previous().line)
@@ -314,9 +318,9 @@ class Parser:
         arguments = []
         while not self.tokens.match([ps.CLOSE_PAREN]):
             if len(arguments) > 0 and not self.tokens.match([ps.COMMA]):
-                raise PloxSyntaxError("Expected , separator in argument list")
+                raise PloxSyntaxError("Expected , separator in argument list", self.tokens.previous().line)
             if self.tokens.peek is None:
-                raise PloxSyntaxError("Expected matching \")\" for function call.")
+                raise PloxSyntaxError("Expected matching \")\" for function call.", self.tokens.previous().line)
             arguments.append(self.expression())
         return syntax_trees.Call(callee, arguments, self.tokens.previous().line)
 
