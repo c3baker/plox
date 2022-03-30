@@ -222,7 +222,8 @@ class Scanner:
             else:
                 token_id = None if c not in self.simple_token_lookup.keys() else self.simple_token_lookup[c]
                 if token_id is None:
-                    self.raise_lexical_error("Lexical Error: Unrecognized symbol %c." % c)
+                    self.raise_lexical_error(self.source.get_current_line(),
+                                             "Lexical Error: Unrecognized symbol %c." % c)
                 else:
                     self.scan_simple_symbol(token_id)
 

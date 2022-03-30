@@ -367,6 +367,21 @@ class TestPrograms(unittest.TestCase):
                   "print \"Done\";"
         run_program(program)
 
+    def test_basic_this(self):
+        program = "class Bakery" \
+                  "{" \
+                  "    fun bake()" \
+                  "    {" \
+                  "        print this.bread_style;" \
+                  "    }" \
+                  "}" \
+                  "" \
+                  "var b = Bakery();" \
+                  "b.bread_style = \"Rye\";" \
+                  "b.bake();"
+
+        run_program(program)
+
 
 
 

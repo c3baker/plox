@@ -166,7 +166,7 @@ class Resolver:
 
     def visit_Set(self, set):
         self._resolve(set.right_side)
-        self.resolve(set.object)
+        self._resolve(set.object)
 
     def visit_ThisStmt(self, this):
         self.resolve_identifier(this, "this")

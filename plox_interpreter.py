@@ -29,10 +29,14 @@ class PloxInstance:
     def __str__(self):
         return str(self.class_type())
 
+    def bind(self, method):
+        method.bind_class_method(self)
+        return method
+
     def get(self, field_name):
         if field_name in self.fields:
             return self.fields[field_name]
-        return self.class_type.get_method(field_name)
+        return self.bind(self.class_type.get_method(field_name))
 
     def set(self, field_name, value):
         self.fields[field_name] = value
@@ -54,11 +58,13 @@ class PloxFunction:
                                                                                        len(self.parameter_names),
                                                                                        len(args)))
         try:
-            interpreter.execute_function_body(self.function_body, zip(self.parameter_names, args))
+            interpreter.execute_function_body(self.function_body, zip(self.parameter_names, args), self.closure)
         except Return as ret:
             ret_val = ret.value
-        interpreter.exit_function_call()
         return ret_val
+
+    def bind_class_method(self, instance):
+        self.closure.bind_class_instance(instance)
 
     def to_string(self):
         return "<fn " + self.name + ": " + len(self.parameter_names) + ">"
@@ -127,10 +133,14 @@ class Environment:
             raise Exception("Expected Assignment Expression")
         return self.set_at(self.resolved_identifiers[assign_expr], assign_expr.var_name, value)
 
-    def get_value(self, ident_expr):
-        if not isinstance(ident_expr, syntax_trees.Idnt):
-            return None
-        return self.get_at(self.resolved_identifiers[ident_expr], ident_expr.identifier.get_value())
+    def get_value(self, expr):
+        if isinstance(expr, syntax_trees.Idnt):
+            name = expr.identifier.get_value()
+        elif isinstance(expr, syntax_trees.ThisStmt):
+            name = "this"
+        else:
+            raise Exception("Invalid lookup value")
+        return self.get_at(self.resolved_identifiers[expr], name)
 
     def get_global_context(self):
         return self.contexts[0]  # The first context in the stack is the global context
@@ -139,6 +149,10 @@ class Environment:
         closure = []
         closure.extend(self.contexts)
         return closure
+
+    def bind_class_instance(self, instance):
+        instance_context = {'this': instance}
+        self.contexts.append(instance_context)
 
 
 class PloxRuntimeError(utilties.PloxError):
@@ -183,8 +197,10 @@ class Interpreter:
     def exit_function_call(self):
         self.environments.pop()
 
-    def execute_function_body(self, func_body_block, call_args):
+    def execute_function_body(self, func_body_block, call_args, function_env):
+        self.enter_function_call(function_env)
         self.visit_Block(func_body_block, call_args)
+        self.exit_function_call()
 
     def is_true(self, value):
         if value is None:
@@ -207,7 +223,6 @@ class Interpreter:
         print("")
 
     def visit_Dclr(self, dclr):
-        value = None
         var_name = dclr.var_name
         try:
             self.environments[-1].add(var_name, None)
@@ -219,7 +234,6 @@ class Interpreter:
                 self.environments[-1].assign(dclr.assign_expr, value)
             except Exception:
                 raise PloxRuntimeError("Redefinition of variable %s\n" % var_name, dclr.line)
-        return None
 
     def visit_FuncDclr(self, f_dclr):
         function = PloxFunction(f_dclr.handle, f_dclr.body,
@@ -344,7 +358,7 @@ class Interpreter:
 
     def visit_Idnt(self, idnt):
         try:
-            value = self.environment.get_value(idnt)
+            value = self.environments[-1].get_value(idnt)
         except Exception as e:
             raise PloxRuntimeError("Implicit declaration of variable %s." % idnt.identifier.get_value(),
                                    idnt.identifier.line)
@@ -366,7 +380,7 @@ class Interpreter:
     def visit_Assign(self, assign):
         assign_value = self.evaluate(assign.right_side)
         try:
-            self.environment.assign(assign, assign_value)
+            self.environments[-1].assign(assign, assign_value)
         except Exception as e:
             raise PloxRuntimeError("Implicit declaration of variable %s." % assign.var_name,
                                    assign.line)
@@ -375,7 +389,7 @@ class Interpreter:
     def visit_Call(self, call):
         try:
             function = self.evaluate(call.callee)
-        except Exception:
+        except Exception as e:
             raise PloxRuntimeError("Implicit declaration of function %s." % str(call.callee),
                                    call.line)
         if not callable(function):
@@ -414,6 +428,10 @@ class Interpreter:
 
     def visit_BrkStmt(self, brk):
         raise Break()
+
+    def visit_ThisStmt(self, this):
+        return self.environments[-1].get_value(this)
+
 
 
 
