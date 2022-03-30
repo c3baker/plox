@@ -181,7 +181,7 @@ class Parser:
 
     def return_statement(self):
         if self.tokens.match([ps.SEMI_COLON]) is True:
-            return syntax_trees.ReturnStmt(None)
+            return syntax_trees.ReturnStmt(None, self.tokens.previous().line)
         ret_val = self.expression()
         if self.tokens.match([ps.SEMI_COLON]) is False:
             raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
@@ -325,18 +325,19 @@ class Parser:
         return syntax_trees.Call(callee, arguments, self.tokens.previous().line)
 
     def primary(self):
-        token = self.tokens.advance()
-        if token.type == ps.NUMBER or token.type == ps.STRING or token.type == ps.KEYWORD_TRUE or \
-           token.type == ps.KEYWORD_FALSE or token.type == ps.KEYWORD_NIL:
-                return syntax_trees.Literal(token)
-        elif token.type == ps.IDENTIFIER:
-            return syntax_trees.Idnt(token)
-        elif token.type == ps.OPEN_PAREN:
+        if self.tokens.match([ps.NUMBER, ps.STRING, ps.KEYWORD_NIL, ps.KEYWORD_TRUE, ps.KEYWORD_FALSE]):
+                return syntax_trees.Literal(self.tokens.previous())
+        elif self.tokens.match([ps.IDENTIFIER]):
+            return syntax_trees.Idnt(self.tokens.previous())
+        elif self.tokens.match([ps.OPEN_PAREN]):
             syntax_tree = syntax_trees.Grouping(self.expression())
             if self.tokens.match([ps.CLOSE_PAREN]):
                     return syntax_tree
             else:
-                raise PloxSyntaxError("Syntax Error; Missing ).", self.tokens.peek().line)
+                raise PloxSyntaxError("Missing \")\".", self.tokens.peek().line)
+        elif self.tokens.match([ps.KEYWORD_THIS]):
+            return syntax_trees.ThisStmt(self.tokens.previous())
+
         raise PloxSyntaxError("Invalid PLOX expression.", self.tokens.peek().line)
 
 

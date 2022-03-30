@@ -100,9 +100,14 @@ class Resolver:
 
     def visit_ClassDclr(self, cldclr):
         self.declare(cldclr.class_name)
+        self.push_scope()
+        self.declare("this")
+        self.define("this")
         for method in cldclr.methods:
             self.resolve_function(method)
+        self.pop_scope()
         self.define(cldclr.class_name)
+
 
     def resolve_function(self, function):
         self.visit_Block(function.body, function.parameters)
@@ -162,6 +167,10 @@ class Resolver:
     def visit_Set(self, set):
         self._resolve(set.right_side)
         self.resolve(set.object)
+
+    def visit_ThisStmt(self, this):
+        self.resolve_identifier(this, "this")
+
 
 
 

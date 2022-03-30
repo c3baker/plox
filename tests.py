@@ -297,6 +297,22 @@ class TestPrograms(unittest.TestCase):
 
         run_program(program)
 
+    def test_function_closures_2(self):
+        program = "fun f(x)" \
+                  "{" \
+                  "    fun g(y)" \
+                  "    {" \
+                  "        return x*y;" \
+                  "    }" \
+                  "    return g;" \
+                  "}" \
+                  "" \
+                  "var h = f(10);" \
+                  "var z = h(3);" \
+                  "print z;"
+
+        run_program(program)
+
     def test_break(self):
         program = "var i = 0;" \
                   "while(true)" \

@@ -17,6 +17,7 @@ Type_BrkStmt = 15
 Type_ClassDclr = 16
 Type_Get = 17
 Type_Set = 18
+Type_ThisStmt = 19
 
 
 class Binary:
@@ -229,6 +230,16 @@ class Set:
 
     def accept(self, visitor): 
         val = visitor.visit_Set(self)
+        return val
+
+
+class ThisStmt:
+    def __init__(self, token):
+        self.token = token
+        self.type = Type_ThisStmt
+
+    def accept(self, visitor): 
+        val = visitor.visit_ThisStmt(self)
         return val
 
 

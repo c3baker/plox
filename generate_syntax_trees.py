@@ -8,7 +8,8 @@ ast_defines = {'Binary': ['left_expr', 'operator', 'right_expr'],
                'IfStmt': ['expr', 'if_block', 'else_block'], 'WhileStmt':['expr', 'while_block'],
                'Call': ['callee', 'arguments', 'line'], 'FuncDclr': ['handle', 'parameters', 'body', 'line'],
                'ReturnStmt': ['ret_val', 'line'], 'BrkStmt': ['line'], 'ClassDclr': ['class_name', 'methods', 'line'],
-               'Get': ["object", "field_name", "line"], 'Set': ['object', 'field_name', 'right_side', 'line']}
+               'Get': ["object", "field_name", "line"], 'Set': ['object', 'field_name', 'right_side', 'line'],
+               'ThisStmt': ["token"]}
 
 def write_line(file_name, line, indentation=0):
     for i in range(indentation):

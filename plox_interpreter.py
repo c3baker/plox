@@ -41,11 +41,11 @@ class PloxInstance:
 
 class PloxFunction:
 
-    def __init__(self, name, block_stmt, parameter_names=[], context_level=GLOBAL):
+    def __init__(self, name, block_stmt, closure, parameter_names=[]):
         self.function_body = block_stmt
         self.parameter_names = parameter_names
         self.callable_name = name
-        self.env_context_level = context_level
+        self.closure = closure
 
     def __call__(self, interpreter, args=[]):
         ret_val = None
@@ -53,7 +53,6 @@ class PloxFunction:
             raise PloxRuntimeError("Function %s expects %d arguments but %d given." % (self.callable_name,
                                                                                        len(self.parameter_names),
                                                                                        len(args)))
-        interpreter.enter_function_call(self.env_context_level)
         try:
             interpreter.execute_function_body(self.function_body, zip(self.parameter_names, args))
         except Return as ret:
@@ -65,17 +64,11 @@ class PloxFunction:
         return "<fn " + self.name + ": " + len(self.parameter_names) + ">"
 
 
-@utilties.singleton
 class Environment:
-    resolved_identifiers = {}
-    reserve_stack = []
 
-    def __init__(self, init_contexts=[]):
-        if not isinstance(init_contexts, list):
-            raise RuntimeError("Contexts must be stored in a list! Something is being passed wrong here!")
-        self.contexts = init_contexts
-
-        self.push_context()
+    def __init__(self, base_environment=None):
+        self.contexts = [{}] if base_environment is None else base_environment.create_closure()
+        self.resolved_identifiers = {} if base_environment is None else base_environment.resolved_identifiers
 
     def push_context(self):
         self.contexts.append({})
@@ -142,28 +135,10 @@ class Environment:
     def get_global_context(self):
         return self.contexts[0]  # The first context in the stack is the global context
 
-    def enter_function_call(self, context_level_limit=[]):
-        self.enter_closure_context(context_level_limit)
-
-    def exit_function_call(self):
-        self.exit_closure_context()
-
-    def enter_closure_context(self, context_level_limit):
-        if context_level_limit >= len(self.contexts):
-            return  # Do nothing
-        context_level_limit = GLOBAL if context_level_limit <= 0 else context_level_limit
-        contexts_to_reserve = self.contexts[context_level_limit:]
-        self.reserve_stack.append(contexts_to_reserve)
-        # Remove the non-globals from the active environment
-        closure_contexts = self.contexts[:context_level_limit]
-        self.contexts = []
-        self.contexts.extend(closure_contexts)
-
-    def exit_closure_context(self):
-        last_contexts = []
-        if len(self.reserve_stack) > 0:
-            last_contexts = self.reserve_stack.pop()
-        self.contexts.extend(last_contexts)
+    def create_closure(self):
+        closure = []
+        closure.extend(self.contexts)
+        return closure
 
 
 class PloxRuntimeError(utilties.PloxError):
@@ -184,11 +159,11 @@ class Break(Exception):
 
 @utilties.singleton
 class Interpreter:
-    environment = Environment()
 
     def __init__(self, console_mode=False):
         super().__init__()
         self._console_mode = console_mode
+        self.environments = [Environment()]
 
     def interpret(self, statements):
         for stmt in statements:
@@ -200,13 +175,13 @@ class Interpreter:
                 raise PloxRuntimeError("Break must be called within a loop context.")
 
     def resolve_identifier(self, expr, scope_level):
-        self.environment.resolve_identifier(expr, scope_level)
+        self.environments[-1].resolve_identifier(expr, scope_level)
 
-    def enter_function_call(self, context_level):
-        return self.environment.enter_function_call(context_level)
+    def enter_function_call(self, function_closure):
+        self.environments.append(function_closure)
 
     def exit_function_call(self):
-        return self.environment.exit_function_call()
+        self.environments.pop()
 
     def execute_function_body(self, func_body_block, call_args):
         self.visit_Block(func_body_block, call_args)
@@ -235,35 +210,35 @@ class Interpreter:
         value = None
         var_name = dclr.var_name
         try:
-            self.environment.add(var_name, None)
+            self.environments[-1].add(var_name, None)
         except PloxRuntimeError as e:
             raise PloxRuntimeError(e.message, dclr.line)
         if dclr.assign_expr is not None:
             value = self.evaluate(dclr.assign_expr)
             try:
-                self.environment.assign(dclr.assign_expr, value)
+                self.environments[-1].assign(dclr.assign_expr, value)
             except Exception:
                 raise PloxRuntimeError("Redefinition of variable %s\n" % var_name, dclr.line)
         return None
 
     def visit_FuncDclr(self, f_dclr):
-        function = PloxFunction(f_dclr.handle, f_dclr.body, f_dclr.parameters,
-                                self.environment.current_context_depth())
+        function = PloxFunction(f_dclr.handle, f_dclr.body,
+                                self.environments[-1], f_dclr.parameters)
         try:
-            self.environment.add(f_dclr.handle, function)
+            self.environments[-1].add(f_dclr.handle, function)
         except PloxRuntimeError as e:
             raise PloxRuntimeError(e.message, f_dclr.line)
 
     def visit_ClassDclr(self, clsdclr):
         methods = {}
         for method in clsdclr.methods:
-            class_method = PloxFunction(method.handle, method.body, method.parameters,
-                                        self.environment.current_context_depth())
+            class_method = PloxFunction(method.handle, method.body,
+                                        self.environments[-1], method.parameters)
             methods[method.handle] = class_method
 
         new_class = PloxClass(clsdclr.class_name, methods)
         try:
-            self.environment.add(clsdclr.class_name, new_class)
+            self.environments[-1].add(clsdclr.class_name, new_class)
         except PloxRuntimeError as e:
             raise PloxRuntimeError(e.message, clsdclr.line)
 
@@ -279,14 +254,14 @@ class Interpreter:
         return None
 
     def visit_Block(self, block, func_call_args=[]):
-        self.environment.enter_block(func_call_args)
+        self.environments[-1].enter_block(func_call_args)
         excpt = None
         try:
             for stmt in block.stmts:
                 self.execute(stmt)
         except Exception as e:  # Need to make sure we pop the environment stack before exiting
             excpt = e
-        self.environment.exit_block()
+        self.environments[-1].exit_block()
         if excpt is not None:
             raise excpt
         return None
