@@ -18,6 +18,7 @@ Type_ClassDclr = 16
 Type_Get = 17
 Type_Set = 18
 Type_ThisStmt = 19
+Type_Construct = 20
 
 
 class Binary:
@@ -240,6 +241,16 @@ class ThisStmt:
 
     def accept(self, visitor): 
         val = visitor.visit_ThisStmt(self)
+        return val
+
+
+class Construct:
+    def __init__(self, line):
+        self.line = line
+        self.type = Type_Construct
+
+    def accept(self, visitor): 
+        val = visitor.visit_Construct(self)
         return val
 
 

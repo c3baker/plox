@@ -12,6 +12,11 @@ class PloxClass:
 
     def __call__(self, interpreter, args=[]):
         instance = PloxInstance(self)
+        try:
+            constructor = instance.get("__init__")
+        except Exception:
+            return instance # No constructor declared just return the instance
+        constructor(interpreter, args)
         return instance
 
     def __str__(self):
@@ -237,7 +242,7 @@ class Interpreter:
 
     def visit_FuncDclr(self, f_dclr):
         function = PloxFunction(f_dclr.handle, f_dclr.body,
-                                self.environments[-1], f_dclr.parameters)
+                                Environment(self.environments[-1]), f_dclr.parameters)
         try:
             self.environments[-1].add(f_dclr.handle, function)
         except PloxRuntimeError as e:

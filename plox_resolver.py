@@ -12,6 +12,7 @@ class Resolver:
         self.interpreter = None
         self.loop_depth = 0
         self.func_depth = 0
+        self.class_depth = 0
 
     def push_scope(self):
         self.scopes.append({})
@@ -94,6 +95,8 @@ class Resolver:
         self.resolve_identifier(assign, assign.var_name)
 
     def visit_FuncDclr(self, fdclr):
+        if fdclr.handle == "__init__" and self.class_depth == 0:
+            raise PloxRuntimeError("Declaring a constructor in an illegal non-class context.", fdclr.line)
         self.declare(fdclr.handle)
         self.define(fdclr.handle)
         self.resolve_function(fdclr)
@@ -103,14 +106,12 @@ class Resolver:
         self.push_scope()
         self.declare("this")
         self.define("this")
+        self.class_depth += 1
         for method in cldclr.methods:
             self.resolve_function(method)
         self.pop_scope()
+        self.class_depth -= 1
         self.define(cldclr.class_name)
-
-
-    def resolve_function(self, function):
-        self.visit_Block(function.body, function.parameters)
 
     def visit_Binary(self, binary):
         self._resolve(binary.left_expr)
@@ -150,6 +151,8 @@ class Resolver:
         self.loop_depth -= 1
 
     def visit_ReturnStmt(self, rtrn):
+        if self.func_depth == 0:
+            raise PloxRuntimeError("Illegal return from an invalid context.", rtrn.line)
         self._resolve(rtrn.ret_val)
 
     def visit_Call(self, call):
@@ -169,9 +172,14 @@ class Resolver:
         self._resolve(set.object)
 
     def visit_ThisStmt(self, this):
+        if self.class_depth == 0:
+            raise PloxRuntimeError("Using \"this\" in an illegal non-class context", this.token.line)
         self.resolve_identifier(this, "this")
 
-
+    def resolve_function(self, function):
+        self.func_depth +=1
+        self.visit_Block(function.body, function.parameters)
+        self.func_depth -= 1
 
 
 

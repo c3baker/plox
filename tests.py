@@ -304,6 +304,7 @@ class TestPrograms(unittest.TestCase):
                   "    {" \
                   "        return x*y;" \
                   "    }" \
+                  "    print \"here\";" \
                   "    return g;" \
                   "}" \
                   "" \

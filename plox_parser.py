@@ -128,7 +128,7 @@ class Parser:
     def func_declaration_statement(self):
         handle = self.primary()  # Expect function name
         parameters = []
-        if not isinstance(handle, syntax_trees.Idnt):
+        if not isinstance(handle, syntax_trees.Idnt) and not isinstance(handle, syntax_trees.Construct):
             raise PloxSyntaxError("Expected function declaration.", self.tokens.previous().line)
         if not self.tokens.match([ps.OPEN_PAREN]):
             raise PloxSyntaxError("Function declaration expected parameter list.", self.tokens.previous().line)
@@ -144,7 +144,8 @@ class Parser:
         body = self.declaration()
         if not isinstance(body, syntax_trees.Block):
             raise PloxSyntaxError("Expected function body definition.", self.tokens.previous().line)
-        return syntax_trees.FuncDclr(handle.identifier.get_value(), parameters, body, self.tokens.previous().line)
+        func_name = handle.identifier.get_value() if isinstance(handle, syntax_trees.Idnt) else "__init__"
+        return syntax_trees.FuncDclr(func_name, parameters, body, self.tokens.previous().line)
 
     def class_declaration_statement(self):
         class_name = self.expression()
@@ -183,6 +184,8 @@ class Parser:
         if self.tokens.match([ps.SEMI_COLON]) is True:
             return syntax_trees.ReturnStmt(None, self.tokens.previous().line)
         ret_val = self.expression()
+        if isinstance(ret_val, syntax_trees.Construct):
+            raise PloxSyntaxError("Cannot return a constructor", self.tokens.previous().line)
         if self.tokens.match([ps.SEMI_COLON]) is False:
             raise PloxSyntaxError("Expected ; after statement.", self.tokens.previous().line)
         return syntax_trees.ReturnStmt(ret_val, self.tokens.previous().line)
@@ -251,6 +254,8 @@ class Parser:
                 return syntax_trees.Assign(expr.identifier.get_value(), assignment, self.tokens.previous().line)
             if isinstance(expr, syntax_trees.Get):  # Class setter
                 return syntax_trees.Set(expr.object, expr.field_name, assignment, self.tokens.previous().line)
+            if isinstance(expr, syntax_trees.Construct):
+                raise PloxSyntaxError("Reassignment of class constructor not allowed.", self.tokens.previous().line)
             raise PloxSyntaxError("Assignment target wrong type.", self.tokens.previous().line)
         return expr
 
@@ -307,10 +312,14 @@ class Parser:
         while self.tokens.match([ps.OPEN_PAREN, ps.DOT]):
             if self.tokens.match_previous([ps.DOT]):
                 identifier = self.primary()
+                if isinstance(identifier, syntax_trees.Construct):
+                    raise PloxSyntaxError("Explicit invocation of a constructor is not allowed.", self.identifier.line)
                 if not isinstance(identifier, syntax_trees.Idnt):
                     raise PloxSyntaxError("Expected method or property.", self.tokens.previous().line)
                 callee = syntax_trees.Get(callee, identifier.identifier.get_value(), self.tokens.previous().line)
             else:
+                if isinstance(callee, syntax_trees.Construct):
+                    raise PloxSyntaxError("Explicit invocation of a constructor is not allowed.", self.identifier.line)
                 callee = self.parse_function_call(callee)
         return callee
 
@@ -337,6 +346,8 @@ class Parser:
                 raise PloxSyntaxError("Missing \")\".", self.tokens.peek().line)
         elif self.tokens.match([ps.KEYWORD_THIS]):
             return syntax_trees.ThisStmt(self.tokens.previous())
+        elif self.tokens.match([ps.KEYWORD_CONSTRUCTOR]):
+            return syntax_trees.Construct(self.tokens.previous().line)
 
         raise PloxSyntaxError("Invalid PLOX expression.", self.tokens.peek().line)
 
