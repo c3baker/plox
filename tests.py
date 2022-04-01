@@ -420,6 +420,39 @@ class TestPrograms(unittest.TestCase):
 
         run_program(program)
 
+    def test_inheritance(self):
+        program = "class Store" \
+                  "{" \
+                  "    fun __init__()" \
+                  "    {" \
+                  "         print \"Init Store\";" \
+                  "    }" \
+                  "    " \
+                  "    fun buy(cost)" \
+                  "    {" \
+                  "        print \"You pay: $\" + cost ;" \
+                  "    }" \
+                  "}" \
+                  "" \
+                  "class Bakery > Store" \
+                  "{" \
+                  "     fun __init__(bread_type)" \
+                  "     {" \
+                  "          this.bread_type = bread_type;" \
+                  "     }" \
+                  "     fun bake()" \
+                  "     {" \
+                  "          print \"Baking \" + this.bread_type;" \
+                  "     }" \
+                  "}" \
+                  "" \
+                  "var bkry = Bakery(\"French Bread\");" \
+                  "bkry.bake();" \
+                  "bkry.buy(1.30);"
+
+        run_program(program)
+
+
 
 
 

@@ -198,8 +198,9 @@ class BrkStmt:
 
 
 class ClassDclr:
-    def __init__(self, class_name, methods, line):
+    def __init__(self, class_name, super, methods, line):
         self.class_name = class_name
+        self.super = super
         self.methods = methods
         self.line = line
         self.type = Type_ClassDclr

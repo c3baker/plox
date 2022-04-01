@@ -148,10 +148,16 @@ class Parser:
         return syntax_trees.FuncDclr(func_name, parameters, body, self.tokens.previous().line)
 
     def class_declaration_statement(self):
-        class_name = self.expression()
+        class_name = self.primary()
+        parent_class = None
         declaration_line = self.tokens.previous().line
         if not isinstance(class_name, syntax_trees.Idnt):
             raise PloxSyntaxError("Expected class declaration.", self.tokens.previous().line)
+        if self.tokens.match([ps.GREATER_THAN]):
+            # Inheritance
+            parent_class = self.expression()
+            if not isinstance(parent_class, syntax_trees.Idnt):
+                raise PloxSyntaxError("Expected super-class identifier.", self.tokens.previous().line)
         if not self.tokens.match([ps.OPEN_BRACE]):
             raise PloxSyntaxError("Expected \"{\" in class declaration.", self.tokens.previous().line)
 
@@ -163,8 +169,7 @@ class Parser:
             if not isinstance(method, syntax_trees.FuncDclr):
                 raise PloxSyntaxError("Expected class method declaration.", self.tokens.previous().line)
             methods.append(method)
-
-        return syntax_trees.ClassDclr(class_name.identifier.get_value(), methods, declaration_line)
+        return syntax_trees.ClassDclr(class_name.identifier.get_value(), parent_class, methods, declaration_line)
 
     def statement(self):
         if self.tokens.match([ps.KEYWORD_PRINT]):

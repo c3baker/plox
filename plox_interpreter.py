@@ -6,11 +6,13 @@ GLOBAL = 1
 
 
 class PloxClass:
-    def __init__(self, name, methods):
+    def __init__(self, name, methods, super_class=None):
         self.name = name
         self.methods = methods
+        self.super_class = super_class
 
     def __call__(self, interpreter, args=[]):
+
         instance = PloxInstance(self)
         try:
             constructor = instance.bind(self.get_method("__init__"))
@@ -23,7 +25,9 @@ class PloxClass:
         return self.name
 
     def get_method(self, method_name):
-        return self.methods[method_name]
+        if method_name in self.methods:
+            return self.methods[method_name]
+        return self.super_class.get_method(method_name)
 
 
 class PloxInstance:
@@ -255,7 +259,11 @@ class Interpreter:
                                         Environment(self.environments[-1]), method.parameters)
             methods[method.handle] = class_method
 
-        new_class = PloxClass(clsdclr.class_name, methods)
+        super_class = None
+        if clsdclr.super is not None:
+            super_class = self.evaluate(clsdclr.super)
+
+        new_class = PloxClass(clsdclr.class_name, methods, super_class)
         try:
             self.environments[-1].add(clsdclr.class_name, new_class)
         except PloxRuntimeError as e:
@@ -309,10 +317,12 @@ class Interpreter:
         operator = binary.operator.type
 
         if operator == scanner.ADD:
-            if isinstance(left_result, float) and isinstance(right_result, float):
+            if isinstance(left_result, str):
+                return left_result + str(right_result)
+            elif isinstance(left_result, float) and isinstance(right_result, float):
                 return left_result + right_result
-            elif isinstance(left_result, str) and isinstance(right_result, str):
-                return left_result + right_result
+            elif isinstance(left_result, float) and isinstance(right_result, str):
+                return str(left_result) + right_result
             else:
                 raise PloxRuntimeError(" + Operator: Expected NUMBER or STRING", binary.operator.line)
         elif operator == scanner.MINUS:
@@ -365,7 +375,7 @@ class Interpreter:
         try:
             value = self.environments[-1].get_value(idnt)
         except Exception as e:
-            raise PloxRuntimeError("Implicit declaration of variable %s." % idnt.identifier.get_value(),
+            raise PloxRuntimeError("Implicit declaration of identifier %s." % idnt.identifier.get_value(),
                                    idnt.identifier.line)
         return value
 

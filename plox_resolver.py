@@ -103,6 +103,8 @@ class Resolver:
 
     def visit_ClassDclr(self, cldclr):
         self.declare(cldclr.class_name)
+        if cldclr.super is not None:  # This class inherits from another
+            self._resolve(cldclr.super)
         self.push_scope()
         self.declare("this")
         self.define("this")
