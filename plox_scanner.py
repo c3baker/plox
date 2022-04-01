@@ -216,7 +216,7 @@ class Scanner:
             self.source.start_next_token()
             if c is None:
                 return
-            if c.isalpha():
+            if c.isalpha() or c == '_':
                 self.read_alpha_symbol()
             elif c.isnumeric():
                 self.read_numeric_symbol()

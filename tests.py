@@ -112,6 +112,14 @@ class TestPrograms(unittest.TestCase):
         self.parser.parse(self.scanner.get_scanned_tokens())
         self.intr.interpret(self.parser.get_parsed_statements())
 
+    def test_should_not_work(self):
+        program = "var if = 0;" # Should be a Plox error using a keyword as a variable name
+        run_program(program)
+
+    def test_should_not_work_2(self):
+        program = "var __init__ = 0;" # Should be a Plox error using a keyword as a variable name
+        run_program(program)
+
     def test_code_blocks_and_variables(self):
         program = "var x = 33;" \
                   "var y = \"XY\"; " \
@@ -129,9 +137,7 @@ class TestPrograms(unittest.TestCase):
                   "}" \
                   "print x;" \
                   "print y;"
-        self.scanner.scan(program)
-        self.parser.parse(self.scanner.get_scanned_tokens())
-        self.intr.interpret(self.parser.get_parsed_statements())
+        run_program(program)
 
     def test_if_statment_true(self):
         program = "if(true)" \
@@ -142,9 +148,7 @@ class TestPrograms(unittest.TestCase):
                   "{" \
                   "    print 20;" \
                   "}"
-        self.scanner.scan(program)
-        self.parser.parse(self.scanner.get_scanned_tokens())
-        self.intr.interpret(self.parser.get_parsed_statements())
+        run_program(program)
 
     def test_if_statment_false(self):
         program = "if(false)" \
@@ -155,9 +159,7 @@ class TestPrograms(unittest.TestCase):
                   "{" \
                   "    print 20;" \
                   "}"
-        self.scanner.scan(program)
-        self.parser.parse(self.scanner.get_scanned_tokens())
-        self.intr.interpret(self.parser.get_parsed_statements())
+        run_program(program)
 
     def test_if_statments_nested(self):
         program = "if(true)" \
@@ -176,11 +178,8 @@ class TestPrograms(unittest.TestCase):
                   "        }" \
                   "    }" \
                   "    " \
-                  "}" \
-
-        self.scanner.scan(program)
-        self.parser.parse(self.scanner.get_scanned_tokens())
-        self.intr.interpret(self.parser.get_parsed_statements())
+                  "}"
+        run_program(program)
 
     def test_while_statment(self):
         program = "var i = 10;" \
@@ -380,6 +379,44 @@ class TestPrograms(unittest.TestCase):
                   "var b = Bakery();" \
                   "b.bread_style = \"Rye\";" \
                   "b.bake();"
+
+        run_program(program)
+
+    def test_constructor(self):
+        program = "class Bakery" \
+                  "{" \
+                  "    fun __init__(bread_style)" \
+                  "    {" \
+                  "       this.bread_style = bread_style" \
+                  "    }" \
+                  "    fun bake()" \
+                  "    {" \
+                  "        print this.bread_style;" \
+                  "    }" \
+                  "}" \
+                  "print \"First Bakery\";" \
+                  "var br = Bakery(\"Rye\");" \
+                  "br.bake();" \
+                  "print \"Next Bakery\";" \
+                  "var bf = Bakery(\"French Bread\");" \
+                  "bf.bake();"
+
+        run_program(program)
+
+    def test_invalid_constructor_access(self):
+        program = "class Bakery" \
+                  "{" \
+                  "    fun __init__(bread_style)" \
+                  "    {" \
+                  "       this.bread_style = bread_style" \
+                  "    }" \
+                  "    fun bake()" \
+                  "    {" \
+                  "        return this.__init__;" \
+                  "    }" \
+                  "}" \
+                  "var br = Bakery(\"Pastry\");" \
+                  "var init = br.bake();"
 
         run_program(program)
 

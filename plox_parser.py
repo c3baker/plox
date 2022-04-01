@@ -313,7 +313,8 @@ class Parser:
             if self.tokens.match_previous([ps.DOT]):
                 identifier = self.primary()
                 if isinstance(identifier, syntax_trees.Construct):
-                    raise PloxSyntaxError("Explicit invocation of a constructor is not allowed.", self.identifier.line)
+                    raise PloxSyntaxError("Explicit invocation of a constructor is not allowed.",
+                                          self.tokens.previous().line)
                 if not isinstance(identifier, syntax_trees.Idnt):
                     raise PloxSyntaxError("Expected method or property.", self.tokens.previous().line)
                 callee = syntax_trees.Get(callee, identifier.identifier.get_value(), self.tokens.previous().line)

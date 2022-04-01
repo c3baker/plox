@@ -13,7 +13,7 @@ class PloxClass:
     def __call__(self, interpreter, args=[]):
         instance = PloxInstance(self)
         try:
-            constructor = instance.get("__init__")
+            constructor = instance.bind(self.get_method("__init__"))
         except Exception:
             return instance # No constructor declared just return the instance
         constructor(interpreter, args)
@@ -78,22 +78,22 @@ class PloxFunction:
 class Environment:
 
     def __init__(self, base_environment=None):
-        self.contexts = [{}] if base_environment is None else base_environment.create_closure()
+        self.scopes = [{}] if base_environment is None else base_environment.create_closure()
         self.resolved_identifiers = {} if base_environment is None else base_environment.resolved_identifiers
 
-    def push_context(self):
-        self.contexts.append({})
+    def push_scope(self):
+        self.scopes.append({})
 
-    def pop_context(self):
-        if len(self.contexts) == 0:
+    def pop_scope(self):
+        if len(self.scopes) == 0:
             return
-        self.contexts.pop()
+        self.scopes.pop()
 
     def current_context_depth(self):
-        return len(self.contexts)
+        return len(self.scopes)
 
     def enter_block(self, zipped_params_args):
-        self.push_context()
+        self.push_scope()
         for param in zipped_params_args:
             # If This is a function call we need
             # To add the function arguments to the local environment
@@ -102,36 +102,36 @@ class Environment:
                 self.add(param_name, arg)
 
     def exit_block(self):
-        self.pop_context()
+        self.pop_scope()
 
     def resolve_identifier(self, expr, scope_depth):
         self.resolved_identifiers[expr] = scope_depth
 
     def add(self, name, value):
-        if name in self.contexts[-1]:
+        if name in self.scopes[-1]:
             raise PloxRuntimeError("Redeclaration of variable %s" % name)
-        self.contexts[-1][name] = value
+        self.scopes[-1][name] = value
 
     def find(self, name):
         c = None
         i = 0
-        self.contexts.reverse()
-        for context in self.contexts:
-            if name in context:
-                c = context
+        self.scopes.reverse()
+        for scope in self.scopes:
+            if name in scope:
+                c = scope
                 break
             i += 1
-        self.contexts.reverse() # Put the list back to its original order
-        context_level = len(self.contexts) - i
+        self.scopes.reverse() # Put the list back to its original order
+        context_level = len(self.scopes) - i
         return c, context_level
 
     def get_at(self, context_level, name):
-        abs_context_level = len(self.contexts) - context_level - 1
-        return self.contexts[abs_context_level][name]
+        abs_context_level = len(self.scopes) - context_level - 1
+        return self.scopes[abs_context_level][name]
 
     def set_at(self, context_level, name, value):
-        abs_context_level = len(self.contexts) - context_level - 1
-        self.contexts[abs_context_level][name] = value
+        abs_context_level = len(self.scopes) - context_level - 1
+        self.scopes[abs_context_level][name] = value
 
     def assign(self, assign_expr, value):
         if not isinstance(assign_expr, syntax_trees.Assign):
@@ -148,16 +148,16 @@ class Environment:
         return self.get_at(self.resolved_identifiers[expr], name)
 
     def get_global_context(self):
-        return self.contexts[0]  # The first context in the stack is the global context
+        return self.scopes[0]  # The first context in the stack is the global context
 
     def create_closure(self):
         closure = []
-        closure.extend(self.contexts)
+        closure.extend(self.scopes)
         return closure
 
     def bind_class_instance(self, instance):
         instance_context = {'this': instance}
-        self.contexts.append(instance_context)
+        self.scopes.append(instance_context)
 
 
 class PloxRuntimeError(utilties.PloxError):
@@ -252,7 +252,7 @@ class Interpreter:
         methods = {}
         for method in clsdclr.methods:
             class_method = PloxFunction(method.handle, method.body,
-                                        self.environments[-1], method.parameters)
+                                        Environment(self.environments[-1]), method.parameters)
             methods[method.handle] = class_method
 
         new_class = PloxClass(clsdclr.class_name, methods)
