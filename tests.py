@@ -190,6 +190,28 @@ class TestPrograms(unittest.TestCase):
                   "}"
         run_program(program)
 
+    def test_or(self):
+        program = "if (10 > 7 or 4 == 3)" \
+                  "{" \
+                  "    print \"OR is True\";" \
+                  "}" \
+                  "else" \
+                  "{" \
+                  "   print \"OR is False\";" \
+                  "}"
+        run_program(program)
+
+    def test_and(self):
+        program = "if (10 > 7 and 4 == 3)" \
+                  "{" \
+                  "    print \"AND is True\";" \
+                  "}" \
+                  "else" \
+                  "{" \
+                  "   print \"AND is False\";" \
+                  "}"
+        run_program(program)
+
     def test_function_declaration(self):
         program = "fun hello_world()" \
                   "{" \
