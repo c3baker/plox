@@ -19,6 +19,7 @@ Type_Get = 17
 Type_Set = 18
 Type_ThisStmt = 19
 Type_Construct = 20
+Type_SuperCall = 21
 
 
 class Binary:
@@ -252,6 +253,16 @@ class Construct:
 
     def accept(self, visitor): 
         val = visitor.visit_Construct(self)
+        return val
+
+
+class SuperCall:
+    def __init__(self, token):
+        self.token = token
+        self.type = Type_SuperCall
+
+    def accept(self, visitor): 
+        val = visitor.visit_SuperCall(self)
         return val
 
 

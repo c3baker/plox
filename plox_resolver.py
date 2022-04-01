@@ -108,6 +108,9 @@ class Resolver:
         self.push_scope()
         self.declare("this")
         self.define("this")
+        if cldclr.super is not None:
+            self.declare("super")
+            self.define("super")
         self.class_depth += 1
         for method in cldclr.methods:
             self.resolve_function(method)
@@ -177,6 +180,11 @@ class Resolver:
         if self.class_depth == 0:
             raise PloxRuntimeError("Using \"this\" in an illegal non-class context", this.token.line)
         self.resolve_identifier(this, "this")
+
+    def visit_SuperCall(self, spr):
+        if self.class_depth == 0:
+            raise PloxRuntimeError("Calling \"super\" from an illegal non-class context", spr.token.line)
+        self.resolve_identifier(spr, "super")
 
     def resolve_function(self, function):
         self.func_depth +=1

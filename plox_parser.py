@@ -320,7 +320,7 @@ class Parser:
                 if isinstance(identifier, syntax_trees.Construct):
                     raise PloxSyntaxError("Explicit invocation of a constructor is not allowed.",
                                           self.tokens.previous().line)
-                if not isinstance(identifier, syntax_trees.Idnt):
+                if not isinstance(identifier, syntax_trees.Idnt) and not isinstance(identifier, syntax_trees.SuperCall):
                     raise PloxSyntaxError("Expected method or property.", self.tokens.previous().line)
                 callee = syntax_trees.Get(callee, identifier.identifier.get_value(), self.tokens.previous().line)
             else:
@@ -354,8 +354,10 @@ class Parser:
             return syntax_trees.ThisStmt(self.tokens.previous())
         elif self.tokens.match([ps.KEYWORD_CONSTRUCTOR]):
             return syntax_trees.Construct(self.tokens.previous().line)
+        elif self.tokens.match([ps.KEYWORD_SUPER]):
+            return syntax_trees.SuperCall(self.tokens.previous())
 
-        raise PloxSyntaxError("Invalid PLOX expression.", self.tokens.peek().line)
+        raise PloxSyntaxError("Invalid LOX expression.", self.tokens.peek().line)
 
 
 

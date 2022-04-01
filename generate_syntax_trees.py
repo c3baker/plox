@@ -10,7 +10,7 @@ ast_defines = {'Binary': ['left_expr', 'operator', 'right_expr'],
                'ReturnStmt': ['ret_val', 'line'], 'BrkStmt': ['line'], 'ClassDclr': ['class_name', 'super',
                                                                                      'methods', 'line'],
                'Get': ["object", "field_name", "line"], 'Set': ['object', 'field_name', 'right_side', 'line'],
-               'ThisStmt': ["token"], 'Construct': ["line"]}
+               'ThisStmt': ["token"], 'Construct': ["line"], 'SuperCall': ['token']}
 
 def write_line(file_name, line, indentation=0):
     for i in range(indentation):

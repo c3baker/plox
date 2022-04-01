@@ -60,9 +60,12 @@ class PloxFunction:
         self.callable_name = name
         self.closure = closure
 
+    def arity(self):
+        return len(self.parameter_names)
+
     def __call__(self, interpreter, args=[]):
         ret_val = None
-        if len(args) != len(self.parameter_names):
+        if len(args) != self.arity():
             raise PloxRuntimeError("Function %s expects %d arguments but %d given." % (self.callable_name,
                                                                                        len(self.parameter_names),
                                                                                        len(args)))
@@ -147,6 +150,8 @@ class Environment:
             name = expr.identifier.get_value()
         elif isinstance(expr, syntax_trees.ThisStmt):
             name = "this"
+        elif isinstance(expr, syntax_trees.SuperCall):
+            name = "super"
         else:
             raise Exception("Invalid lookup value")
         return self.get_at(self.resolved_identifiers[expr], name)
@@ -160,7 +165,7 @@ class Environment:
         return closure
 
     def bind_class_instance(self, instance):
-        instance_context = {'this': instance}
+        instance_context = {'this': instance, 'super': instance.class_type.super_class}
         self.scopes.append(instance_context)
 
 
@@ -262,6 +267,8 @@ class Interpreter:
         super_class = None
         if clsdclr.super is not None:
             super_class = self.evaluate(clsdclr.super)
+            if not isinstance(super_class, PloxClass):
+                raise PloxRuntimeError("Inheriting from something other than another class.", clsdclr.line)
 
         new_class = PloxClass(clsdclr.class_name, methods, super_class)
         try:
@@ -403,26 +410,32 @@ class Interpreter:
 
     def visit_Call(self, call):
         try:
-            function = self.evaluate(call.callee)
+            callable_obj = self.evaluate(call.callee)
         except Exception as e:
             raise PloxRuntimeError("Implicit declaration of function %s." % str(call.callee),
                                    call.line)
-        if not callable(function):
+        if not callable(callable_obj):
             raise PloxRuntimeError("Attempting to call a non-callable object .", call.callee.identifier.line)
-        return function(self, [self.evaluate(x) for x in call.arguments])
+        return callable_obj(self, [self.evaluate(x) for x in call.arguments])
 
     def visit_Get(self, get):
         try:
             object = self.evaluate(get.object)
         except Exception:
             raise PloxRuntimeError("Accessing unknown object", get.line)
-        if not isinstance(object, PloxInstance):
-            raise PloxRuntimeError("Accessing something other than an object", get.line)
-        try:
-            return object.get(get.field_name)
-        except Exception:
-            raise PloxRuntimeError("Class %s has no such field %s" % (str(object),
-                                                                      get.field_name), get.line)
+        if isinstance(object, PloxInstance):
+            try:
+                return object.get(get.field_name)
+            except Exception:
+                raise PloxRuntimeError("Object %s has no such field %s" % (str(object),
+                                                                          get.field_name), get.line)
+        elif isinstance(object, PloxClass):
+            try:
+                return object.get_method(get.field_name)
+            except Exception:
+                raise PloxRuntimeError("Class %s has no such method %s" % (str(object), get.field_name), get.line)
+
+        raise PloxRuntimeError("Attempting to access something other than a class or object instance", get.line)
 
     def visit_Set(self, set):
         set_value = self.evaluate(set.right_side)
@@ -431,7 +444,7 @@ class Interpreter:
         except Exception:
             raise PloxRuntimeError("Attempting to set unknown object", set.line)
         if not isinstance(object, PloxInstance):
-            raise PloxRuntimeError("Accessing something other than an object", set.line)
+            raise PloxRuntimeError("Accessing something other than an object instance", set.line)
         object.set(set.field_name, set_value)
         
 
@@ -446,6 +459,10 @@ class Interpreter:
 
     def visit_ThisStmt(self, this):
         return self.environments[-1].get_value(this)
+
+    def visit_SuperCall(self, spr):
+        return self.environments[-1].get_value(spr)
+
 
 
 

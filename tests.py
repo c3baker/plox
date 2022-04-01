@@ -436,19 +436,27 @@ class TestPrograms(unittest.TestCase):
                   "" \
                   "class Bakery > Store" \
                   "{" \
-                  "     fun __init__(bread_type)" \
+                  "     fun __init__(bread_type, bread_price)" \
                   "     {" \
                   "          this.bread_type = bread_type;" \
+                  "          this.bread_price = bread_price;" \
                   "     }" \
                   "     fun bake()" \
                   "     {" \
                   "          print \"Baking \" + this.bread_type;" \
                   "     }" \
+                  "     " \
+                  "     fun buy_bread()" \
+                  "     {" \
+                  "         this.bake();" \
+                  "         super.buy(this.bread_price);" \
+                  "     }" \
                   "}" \
                   "" \
-                  "var bkry = Bakery(\"French Bread\");" \
+                  "var bkry = Bakery(\"French Bread\", 2.25);" \
                   "bkry.bake();" \
-                  "bkry.buy(1.30);"
+                  "bkry.buy(1.30);" \
+                  "bkry.buy_bread();"
 
         run_program(program)
 
